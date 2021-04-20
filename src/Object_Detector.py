@@ -54,7 +54,7 @@ class Object_Detector():
 
 
     def process(self, images):
-        """[summary]
+        """Method to get object detection information.
 
         Args:
             images : list(np.ndarray): List of images.
