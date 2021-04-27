@@ -1,5 +1,5 @@
 """
-Author: Jorge García <sirsykon@ŋmail.com>
+Author: Jorge García <sirsykon@gmail.com>
 """
 
 import numpy as np
