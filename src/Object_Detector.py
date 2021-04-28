@@ -37,7 +37,7 @@ class Object_Detector():
             The output is a list containing the object detection information for each image as follows:
                 output : list(objec_detection_information)
                 objec_detection_information : [bboxes, classes, confidences]
-                bboxes defines the position of the object. its structure changes according to bbox_format as follows:
+                bboxes : list(bbox) defines the positions of the objects. bbox structure is as folows:
                     [x,y,width,height] with corners (left-right, top-bottom) [x,y], [x+width,y], [x,y+height] and [x+width,y+height].
                 classes : list(int) 
                 confidences: list(float)
@@ -63,7 +63,7 @@ class Object_Detector():
             The output is a list containing the object detection information for each image as follows:
                 output : list(objec_detection_information)
                 objec_detection_information : [bboxes, classes, confidences]
-                bboxes = list(bbox) defines the position of the object. bbox structure changes according to bbox_format as follows:
+                bboxes : list(bbox) defines the positions of the objects. bbox structure changes according to bbox_format as follows:
                     "coco" -> [x,y,width,height] with corners (left-right, top-bottom) [x,y], [x+width,y], [x,y+height] and [x+width,y+height].
                     "absolute" -> [x1,y1,x2,y2] with corners (left-right, top-bottom) [x1,y1], [x2, y1], [x1,y2], [x2, y2]
                     "relative" -> [x1,y1,x2,y2] with corners (left-right, top-bottom) [x1 * self.shape[1],y1 * self.shape[0]], [x2 * self.shape[1], y1 * self.shape[0]], [x1 * self.shape[1],y2 * self.shape[0]], [x2 * self.shape[1], y2 * self.shape[0]]. 

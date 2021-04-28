@@ -6,7 +6,7 @@ File to create test time augmentation functions to transform images in order to 
 
 The idea is to return a function to transform the images and a function to transform each object detected to the original position so we can get the detection on the original image coordinates.
 
-All functions will assume computational point standard (height, width).
+All functions will assume mathematical point standard (width, height).
 
 """
 
@@ -38,18 +38,18 @@ def create_flip_transformation(axis):
             return np.flip(image, (0,1))
 
     def unflip_point(point, image_shape):
-        h, w = point
+        x, y = point
         max_h, max_w, _ = image_shape
         max_h -= 1                      # First index is 0.
         max_w -= 1                      # First index is 0.
         if axis == "vertical":
-            return [max_h - h, w]
+            return [x, max_h - y]
 
         if axis == "horizontal":
-            return [h, max_w - w]
+            return [max_w - x, y]
 
         if axis == "both":
-            return [max_h - h, max_w - w]
+            return [max_w - x, max_h - y]
 
     return flip, unflip_point
 
@@ -79,17 +79,59 @@ def create_rotation_transformation(degrees):
         return np.rot90(image, rot_times)
 
     def unrotate_point(point, image_shape):
-        h, w = point
+        x, y = point
         max_h, max_w, _ = image_shape
         max_h -= 1                      # First index is 0.
         max_w -= 1                      # First index is 0.
         if degrees == 90:
-            return [w, max_h - h]
+            return [max_h - y, x]
 
         if degrees == 180:
-            return [max_h - h, max_w - w]
+            return [max_w - x, max_h - y]
 
         if degrees == 270:
-            return [max_w - w, h]
+            return [y, max_w - x]
 
     return rotate, unrotate_point
+
+
+def untransform_coco_format_object_information(object_detection_information, untransform_point_function, image_shape):
+    """Function to transform an object detection information to undo transformation over the position.
+
+    Args:
+        objec_detection_information : [bboxes, classes, confidences]
+                bboxes : list(bbox) defines the positions of the objects. bbox structure is as folows:
+                    [x,y,width,height] with corners (left-right, top-bottom) [x,y], [x+width,y], [x,y+height] and [x+width,y+height].
+                classes : list(int) 
+                confidences: list(float)
+    """
+
+    bboxes, classes, confidences = object_detection_information
+    new_bboxes = []
+    for bbox in bboxes:
+        [x,y,width,height] = bbox
+        initial_top_left = [x,y]
+        initial_top_right = [x+width,y]
+        initial_bottom_left = [x,y+height]
+        initial_bottom_right = [x+width,y+height]
+
+        untransformed_initial_top_left = untransform_point_function(initial_top_left, image_shape)
+        untransformed_initial_top_right = untransform_point_function(initial_top_right, image_shape)
+        untransformed_initial_bottom_left = untransform_point_function(initial_bottom_left, image_shape)
+        untransformed_initial_bottom_right = untransform_point_function(initial_bottom_right, image_shape)
+
+        # We don't know wich transformation was applied so we don't know wich untramsformation has been applied.
+        # so we need to obtain the top-left corner (the minimum height and width) and the maximum one.
+        aux_array = np.array([untransformed_initial_top_left, untransformed_initial_top_right, untransformed_initial_bottom_left, untransformed_initial_bottom_right])
+        print(aux_array)
+        untransformed_top_left = aux_array.min(0)       # We get the minimum positions.
+        untransformed_bottom_right = aux_array.max(0)   # We get the maximum positions.
+        width_and_height = untransformed_bottom_right-untransformed_top_left
+
+        new_bbox = [untransformed_top_left[0], untransformed_top_left[1], width_and_height[0], width_and_height[1]]
+
+    new_bboxes.append(new_bbox)
+
+    return [new_bboxes, classes, confidences]
+
+
