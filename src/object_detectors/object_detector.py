@@ -28,7 +28,8 @@ class Object_Detector():
         self.bbox_format = bbox_format
 
     def process_output_bbox_format_coco(self, images):
-        """[summary]
+        """ Abstract function to apply object detection method and obtain detections with coco structure. 
+            Any child class must implement this function.
 
         Args:
             images (list(np.ndarray)): List of images.
@@ -46,7 +47,8 @@ class Object_Detector():
 
     def preprocess(self, images):
         """Method to preprocess images in order to be processed by this object detector.
-
+            Any child class must implement this function.
+            
         Args:
             images (list(np.ndarray)): input images to be preprocessed. 
         """

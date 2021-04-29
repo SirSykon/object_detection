@@ -7,28 +7,40 @@ import time
 # Following https://pytorch.org/vision/stable/models.html#faster-r-cnn
 
 class Faster_RCNN_Torch_Object_Detector(Object_Detector):
-    def __init__(self):
-        super().__init__()
-        self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
-        self.model.eval()
-
-    def process_output_bbox_format_coco(self, images):
+    def __init__(self, to="cuda"):
         """[summary]
 
         Args:
-            images (torch.tensor): [description]
+            to (str, optional): "cuda" (GPU) or "cpu" selects where to process the information. Defaults to "cuda".
+        """
+        super().__init__()
+        self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+        self.model.eval()
+        self.model.to(to)
+        self.to = to
+
+    def process_output_bbox_format_coco(self, images):
+        """Function to apply object detection method and obtain detections with coco structure. 
+
+        Args:
+            images (torch.tensor): torch tensor batch of images as shown in Following https://pytorch.org/vision/stable/models.html#faster-r-cnn
+
+        Returns:
+            Objects detections with coco structure.
         """
         # We ensure images is a torch tensor with channel-first.
         assert type(images) == torch.Tensor
         assert list(images.size())[1] == 3
+        initial_time = time.time()
 
-        with torch.no_grad():
+        with torch.no_grad():   # We are not training so we do not need grads.
             outputs = self.model(images)
 
-        outputs = turn_faster_rcnn_outputs_into_coco_format(outputs, list(images.size())[1:])
+        outputs = self.turn_faster_rcnn_outputs_into_coco_format(outputs)   # We need to manipulate the output.
+        print(time.time()-initial_time)
         return outputs
     
-    def preprocess(self, images):
+    def preprocess(self, images, to = "cuda"):
         """ Function to preprocess a batch of images.
 
         Args:
@@ -47,31 +59,38 @@ class Faster_RCNN_Torch_Object_Detector(Object_Detector):
         # We normalize.
         imgs = imgs/255.
         # We ceate a tensor with dtype float32.
-        return torch.tensor(imgs, dtype=torch.float32)
+        return torch.tensor(imgs, dtype=torch.float32).to(device=self.to)
 
-def turn_faster_rcnn_outputs_into_coco_format(all_images_output, image_shape):
-    """Funtion to turn torch faster rcnn output into coco format.
+    def turn_faster_rcnn_outputs_into_coco_format(self, all_images_output):
+        """Funtion to turn torch faster rcnn output into coco format.
 
-    Args:
-        all_images_output (dictionary): A dictionary with the following structure:
-            {"boxes" : list(box),
-            labels : list(int),
-            scores : list(float)}
-        with  box = [x1,y1,x2,y2] for each object with (x1,y1) as topp-left corner and (x2,y2) with bottom-right corner-
+        Args:
+            all_images_output (dictionary): A dictionary with the following structure:
+                {"boxes" : list(box),
+                labels : list(int),
+                scores : list(float)}
+            with  box = [x1,y1,x2,y2] for each object with (x1,y1) as topp-left corner and (x2,y2) with bottom-right corner-
 
-    Returns:
+        Returns:
 
-    """
-    initial_time = time.time()
-    new_all_images_output = []
-    _, height, width = image_shape
-    for img_output in all_images_output:
-        bboxes = img_output["boxes"].numpy()
-        labels = img_output["labels"].numpy()
-        scores = img_output["scores"].numpy()
-        bboxes[:,2] = bboxes[:,2] - bboxes[:,0]
-        bboxes[:,3] = bboxes[:,3] - bboxes[:,1]
-        new_all_images_output.append([bboxes, labels, scores])
-    
-    print(time.time()-initial_time)
-    return new_all_images_output
+        """
+        new_all_images_output = []
+        for img_output in all_images_output:    # For each image objects detections...
+            # We get the information.
+            bboxes = img_output["boxes"]
+            labels = img_output["labels"]
+            scores = img_output["scores"]
+            bboxes[:,2] = bboxes[:,2] - bboxes[:,0]
+            bboxes[:,3] = bboxes[:,3] - bboxes[:,1]
+
+            if self.to == "cuda":
+                bboxes = bboxes.to("cpu")
+                labels = labels.to("cpu")
+                scores = scores.to("cpu")
+            
+            bboxes = bboxes.numpy()
+            labels = labels.numpy()
+            scores = scores.numpy()
+            new_all_images_output.append([bboxes, labels, scores])
+        
+        return new_all_images_output
