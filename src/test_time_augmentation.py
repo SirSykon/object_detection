@@ -22,7 +22,7 @@ def create_flip_transformation(axis):
 
     Returns:
         Function: Function that takes an image and flips it.
-        Function: Function that takes information from a flipped image and transforms it to the original image position.
+        Function: Function that takes point from a flipped image and transforms it to the original image position.
     """
 
     assert axis in ["horizontal", "vertical", "both"]
@@ -61,7 +61,7 @@ def create_rotation_transformation(degrees):
 
     Returns:
         Function: Function that takes an image and rotate it.
-        Function: Function that takes information from a rotated image and transforms it to the original image position.
+        Function: Function that takes point from a rotated image and transforms it to the original image position.
     """
 
     assert degrees in [90, 180, 270]
@@ -133,6 +133,39 @@ def untransform_coco_format_object_information(object_detection_information, unt
     new_bboxes.append(new_bbox)
 
     return [new_bboxes, classes, confidences]
+
+def create_composition_of_transformations(input_functions):
+    """Function to create a composition of transformations.
+
+    Args:
+        input_functions (list): list with the following shape:
+            [transformation_function_1, untransform_point_function_1, transformation_function_2, untransform_point_function_2, ..., transformation_function_n, untransform_point_function_n]
+
+    Returns:
+        Function: Function that takes an image and applies all transformation function to it.
+        Function: Function that takes point from an image with all transformation functions applied to it and transforms it to the original image position
+    """
+
+    transformations = input_functions[::2]
+    untransformations = input_functions[1::2]
+
+    assert len(transformations) == len(untransformations)
+
+    def transformation_composition(image):
+        aux_image = image.copy()
+        for trans in transformations:
+            aux_image = trans(aux_image)
+
+        return aux_image
+
+    def untransformation_composition(point):
+        aux_point = point.copy()
+        for untrans in reversed(untransformations):
+            aux_point = untrans(aux_point)
+
+        return aux_point
+
+    return transformation_composition, untransformation_composition
 
 #  Felzenszwalb et al. from https://www.pyimagesearch.com/2014/11/17/non-maximum-suppression-object-detection-python/
 def non_max_suppression_slow(bboxes, overlapThresh):
