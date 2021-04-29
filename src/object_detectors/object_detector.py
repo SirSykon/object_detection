@@ -11,7 +11,7 @@ class Object_Detector():
         Args:
             bbox_format (str, optional): defines how bbox is. Format can be "coco" (default), "absolute" or "relative". Defaults to "coco".
     """
-    def __input__(self, bbox_format="coco"):
+    def __init__(self, bbox_format="coco"):
         """
         Method to initialize the network.
 
@@ -70,7 +70,7 @@ class Object_Detector():
                 classes : list(int) 
                 confidences : list(float)
         """
-        output = process_output_bbox_format_coco(images)
+        output = self.process_output_bbox_format_coco(images)
         if not self.bbox_format == "coco":
             new_output = []
             for [coco_format_bboxes, classes, confidences] in output:
@@ -95,7 +95,6 @@ class Object_Detector():
 
     def __call__(self, images):
         return self.process(images)
-
 
 class Dummy_Object_Detector(Object_Detector):
     """Class to implement Object_Detector wrapper as an example dummy Object_Detector.
