@@ -51,6 +51,43 @@ class Coco_Annotation_Set(object):
                     )
                     self.annotations.append(ann)
 
+    def insert_image(id:int, width:int, height:int, file_name:str = '', license:int = 0, flickr_url:str = '', coco_url:str = '', date_captured:int = 0):
+        """Method to insert image into Coco Annotation Structure.
+
+        Args:
+            id (int): Image identifier.
+            width (int): Image Width.
+            height (int): Image Height.
+            file_name (str, optional): Image file name.. Defaults to ''.
+            license (int, optional): License id. Defaults to 0.
+            flickr_url (str, optional): Image flickr URL. Defaults to ''.
+            coco_url (str, optional): Image COCO URL. Defaults to ''.
+            date_captured (int, optional): Image date. Defaults to 0.
+        """
+
+        img = {
+            'id': id,
+            'width': width,
+            'height': height,
+            'file_name': file_name,
+            'license' : license,
+            'flickr_url' = flickr_url,
+            'coco_url' = coco_url,
+            'date_captured' = date_captured
+        }
+
+        self.images.append(img)
+
+    def to_dict(self):
+        d = {
+            
+        }
+
+        return d
+
+    def __str__(self):
+        return str(self.to_dict())
+
 
 class Coco_Annotation_Object(object):
 
@@ -127,7 +164,7 @@ class Coco_Annotation_Object(object):
 
     """
 
-    def __init__(self, bbox:list, category_id:int, id:int = None, segmentation:list = None, area:float = None, iscrowd:int = 0, image_id:int = None, image_shape:list = None, bbox_format:str = "coco") -> Coco_Annotation_Object:
+    def __init__(self, bbox:list, category_id:int, id:int = None, segmentation:list = None, area:float = None, iscrowd:int = 0, image_id:int = None, image_shape:list = None, bbox_format:str = "coco"):
         """
         Args:
             bbox (list): defines the position of the object. its structure changes according to bbox_format as follows:
@@ -169,7 +206,7 @@ class Coco_Annotation_Object(object):
     def __str__(self):
         return str(self.to_dict())
 
-    def set_image_shape(self, input_shape:list[int]) -> None:
+    def set_image_shape(self, input_shape:list) -> None:
         """Method to set image shape where this object appears.
 
         Args:
@@ -180,7 +217,7 @@ class Coco_Annotation_Object(object):
         """
         self.image_shape = input_shape
 
-    def to_coco_dict(self) -> dict[str, object]:
+    def to_coco_dict(self) -> dict:
         """Method to turn this annotation into a dictionary with only coco data.
 
         Returns:

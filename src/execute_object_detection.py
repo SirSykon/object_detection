@@ -5,11 +5,13 @@ import numpy as np
 from object_detectors import faster_rcnn_torch_object_detector
 import utils
 import test_time_augmentation
+import coco_format_utils
 
 parser = argparse.ArgumentParser(description='Script to execute object detection to some video.')
 parser.add_argument('-m', '--model', help="Object Detection model to use. Current options: 'faster'")
 parser.add_argument('-v', '--video', help="Path to video.")
-parser.add_argument('-t', '--transformations', nargs = '+', default=None, help= "transformations set. Expected list as follows: 'flipH flipV rot90'")
+parser.add_argument('-t', '--transformations', nargs = '+', default=None, help= "Transformations set. Expected list as follows: 'flipH flipV rot90'")
+parser.add_argument('-o', '--output', default='../output/annotation.json', help= 'Path to output file to write obtained annotations as coco')
 
 args = parser.parse_args()
 
@@ -35,6 +37,8 @@ if args.transformations:
         transform_images_functions.append(t)
         untransform_point_functions.append(u)
 
+coco_annotations = coco_format_utils.Coco_Annotation_Set()
+print(coco_annotations)
 vidcap = cv2.VideoCapture(args.video)
 
 # Main loop
