@@ -54,6 +54,20 @@ class Object_Detector():
         """
         raise(NotImplementedError)
 
+    def filter_output_by_confidence_treshold(self, objects:list, treshold:float = 0.5):
+        """Function to filter the detections with treshold.
+        Args:
+            objects (list): List of object detections.
+            treshold (float, optional): Trshold to filter detections with. Defaults to 0.5.
+        """
+        filtered_objects = []
+
+        for obj in objects:
+            bboxes, classes, confidences = obj
+            idx = confidences >= treshold
+            filtered_objects.append([bboxes[idx], classes[idx], confidences[idx]])
+
+        return filtered_objects
 
     def process(self, images):
         """Method to get object detection information.

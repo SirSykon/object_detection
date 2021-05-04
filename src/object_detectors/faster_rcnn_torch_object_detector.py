@@ -8,8 +8,7 @@ import time
 
 class Faster_RCNN_Torch_Object_Detector(Object_Detector):
     def __init__(self, to="cuda"):
-        """[summary]
-
+        """Constructor.
         Args:
             to (str, optional): "cuda" (GPU) or "cpu" selects where to process the information. Defaults to "cuda".
         """
@@ -37,7 +36,7 @@ class Faster_RCNN_Torch_Object_Detector(Object_Detector):
             outputs = self.model(images)
 
         outputs = self.turn_faster_rcnn_outputs_into_coco_format(outputs)   # We need to manipulate the output.
-        print(time.time()-initial_time)
+        print(f"process time {time.time()-initial_time}")
         return outputs
     
     def preprocess(self, images, to = "cuda"):
@@ -48,9 +47,9 @@ class Faster_RCNN_Torch_Object_Detector(Object_Detector):
 
         Returns:
             A torch tensor with the preprocessed images as self.model expects.
-        """
-
+        """  
         assert len(images.shape) == 4
+
         # We copy the images np array to ensure they are not destroyed.
         imgs = images.copy()
         if imgs.shape[-1] == 3: # We guess the last dimensions is channels.                

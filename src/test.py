@@ -3,7 +3,11 @@ import cv2
 import numpy as np
 import utils
 from object_detectors.faster_rcnn_torch_object_detector import Faster_RCNN_Torch_Object_Detector
+import coco_format_utils
 
+coco_format_utils.read_annotations_from_json_file("../../datasets/jodoin/rouen/annotations/rouen.json")
+
+quit()
 image = cv2.imread("../input/test/wp1919724.jpg")
 image = cv2.resize(image, (1920,1080))
 

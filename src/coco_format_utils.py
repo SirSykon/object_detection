@@ -1,11 +1,36 @@
 import numpy as np
 import json
 
-def Coco_Annotation_Set():
+def generate_coco_format_info():
+    d = {
+        "description": "COCO 2017 Dataset",
+        "url": "https://github.com/SirSykon/object_detection",
+        "version": "0.1",
+        "year": 2020,
+        "contributor": "Jorge García <jrggcgz@gmail.com>",
+        "date_created": "2020/05/04"
+    }
+
+    return d
+
+class Coco_Annotation_Set(object):
     """ 
     Class to contain a set of Coco annotations.
     """
-    def __init__(self, json_file_path:str = None):
+    def __init__(self, json_file_path:str = None, info:dict = None, licenses:list = None, images:list = None):
+        if info:
+            self.info = info
+        else:
+            self.info = generate_coco_format_info()
+        if licenses:
+            self.licenses = licenses
+        else:
+            self.licenses = []
+        if images:
+            self.images = images
+        else:
+            self.images = []
+        
         self.annotations = []
         if json_file_path:
             with open(path) as json_file:
@@ -21,13 +46,13 @@ def Coco_Annotation_Set():
                         area = input_ann["area"],
                         iscrowd = input_ann["iscrowd"],
                         image_id = input_ann["image_id"],
-                        bbox = input_ann["bbox"]
+                        bbox = input_ann["bbox"],
                         category_id = input_ann["category_id"]
                     )
                     self.annotations.append(ann)
 
 
-def Coco_Annotation_Object():
+class Coco_Annotation_Object(object):
 
     """
     Class to contain Image annotations information following COCO format as described in https://www.immersivelimit.com/tutorials/create-coco-annotations-from-scratch
@@ -254,7 +279,7 @@ def Coco_Annotation_Object():
         if format == "absolute":
             return self.get_corners_absolute_format()
 
-def new_object(bbox:list[float], category_id:int, id:int = None, segmentation:list = None, area:float = None, iscrowd:int = 0, image_id:int = None, image_shape:list[int] = None, bbox_format:str = "coco") -> Coco_Annotation_Object:
+def new_object(bbox:list, category_id:int, id:int = None, segmentation:list = None, area:float = None, iscrowd:int = 0, image_id:int = None, image_shape:list = None, bbox_format:str = "coco") -> Coco_Annotation_Object:
     """
     Args:
         bbox (list): defines the position of the object. its structure changes according to bbox_format as follows:
@@ -277,7 +302,7 @@ def new_object(bbox:list[float], category_id:int, id:int = None, segmentation:li
 
     return Coco_Annotation_Object(bbox, category_id, id=id, segmentation=segmentation, area=area, iscrowd=iscrowd, image_id = image_id, image_shape = image_shape, bbox_format = bbox_format)
 
-def object_from_dict(self, input_dict:dict[str, object]) -> Coco_Annotation_Object:
+def object_from_dict(self, input_dict:dict) -> Coco_Annotation_Object:
     """Method to generate a coco format annotation from a dictionary.
 
     Args:
@@ -297,3 +322,16 @@ def object_from_dict(self, input_dict:dict[str, object]) -> Coco_Annotation_Obje
         iscrowd = input_dict["iscrowd"],
         image_id = input_dict["image_id"]
     )
+
+def read_annotations_from_json_file(file_path):
+    """
+
+    Args:
+        file_path (str): Path to json file containing the annotations.
+    """
+
+    with open(file_path) as json_file:
+        data = json.load(json_file)
+        print(data.keys())
+        print(data['images'][0])
+        print(data['annotations'][0])
