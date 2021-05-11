@@ -33,25 +33,17 @@ class Coco_Annotation_Set(object):
         
         self.annotations = []
         if json_file_path:
-            with open(path) as json_file:
+            with open(json_file_path) as json_file:
                 data = json.load(json_file)
                 for input_ann in data:
                     if input_ann["iscrowd"] == 1:
                         print("We work assuming iscrowd is 0.")
                         raise(NotImplementedError)
 
-                    ann = Coco_Annotation_Object(
-                        id = input_ann["id"],
-                        segmentation = input_ann["segmentation"],
-                        area = input_ann["area"],
-                        iscrowd = input_ann["iscrowd"],
-                        image_id = input_ann["image_id"],
-                        bbox = input_ann["bbox"],
-                        category_id = input_ann["category_id"]
-                    )
-                    self.annotations.append(ann)
+                    self.insert_annotation(input_ann["segmentation"], input_ann["area"], input_ann["iscrowd"], input_ann["image_id"], input_ann["bbox"], input_ann["category_id"])
 
-    def insert_image(id:int, width:int, height:int, file_name:str = '', license:int = 0, flickr_url:str = '', coco_url:str = '', date_captured:int = 0):
+
+    def insert_image(self, id:int, width:int, height:int, file_name:str = '', _license:int = 0, flickr_url:str = '', coco_url:str = '', date_captured:int = 0):
         """Method to insert image into Coco Annotation Structure.
 
         Args:
@@ -59,7 +51,7 @@ class Coco_Annotation_Set(object):
             width (int): Image Width.
             height (int): Image Height.
             file_name (str, optional): Image file name.. Defaults to ''.
-            license (int, optional): License id. Defaults to 0.
+            _license (int, optional): License id. Defaults to 0.
             flickr_url (str, optional): Image flickr URL. Defaults to ''.
             coco_url (str, optional): Image COCO URL. Defaults to ''.
             date_captured (int, optional): Image date. Defaults to 0.
@@ -70,23 +62,54 @@ class Coco_Annotation_Set(object):
             'width': width,
             'height': height,
             'file_name': file_name,
-            'license' : license,
-            'flickr_url' = flickr_url,
-            'coco_url' = coco_url,
-            'date_captured' = date_captured
+            'license' : _license,
+            'flickr_url' : flickr_url,
+            'coco_url' : coco_url,
+            'date_captured' : date_captured
         }
 
         self.images.append(img)
 
+    def insert_coco_annotation_object(self, coco_annotation_object):
+        self.annotations.append(coco_annotation_object)
+
+    def insert_annotation(self, segmentation, area, iscrowd, image_id, bbox, category_id):
+        ann = Coco_Annotation_Object(
+            id = image_id,
+            segmentation = segmentation,
+            area = area,
+            iscrowd = iscrowd,
+            image_id = image_id,
+            bbox = bbox,
+            category_id = category_id
+            )
+        self.annotations.append(ann)
+
+    def __str__(self):
+        return str(self.to_dict())
+
     def to_dict(self):
+
+        anns = []
+        for ann in self.annotations:
+            anns.append(ann.to_dict())
+
         d = {
-            
+            "info" : self.info,
+            "licenses" : self.licenses,
+            "images" : self.images,
+            "annotations" : anns
         }
 
         return d
 
     def __str__(self):
         return str(self.to_dict())
+
+    def to_json(self, save_path):
+        data = self.to_dict()
+        with open(save_path, "w") as f:
+            json.dump(data, f)
 
 
 class Coco_Annotation_Object(object):
@@ -217,7 +240,7 @@ class Coco_Annotation_Object(object):
         """
         self.image_shape = input_shape
 
-    def to_coco_dict(self) -> dict:
+    def to_dict(self) -> dict:
         """Method to turn this annotation into a dictionary with only coco data.
 
         Returns:
@@ -227,10 +250,10 @@ class Coco_Annotation_Object(object):
             "segmentation" : self.segmentation.tolist(),
             "area" :  self.area,
             "iscrowd" : self.iscrowd,
-            "image_id" : self.image_id,
+            "image_id" : int(self.image_id),
             "bbox" : self.bbox.tolist(),
-            "category_id" : self.category_id,
-            "id" : self.id
+            "category_id" : int(self.category_id),
+            "id" : int(self.id)
             }
 
         return d

@@ -1,6 +1,7 @@
 import argparse
 import os
 import cv2
+import time
 import numpy as np
 from object_detectors import faster_rcnn_torch_object_detector
 import utils
@@ -12,6 +13,7 @@ parser.add_argument('-m', '--model', help="Object Detection model to use. Curren
 parser.add_argument('-v', '--video', help="Path to video.")
 parser.add_argument('-t', '--transformations', nargs = '+', default=None, help= "Transformations set. Expected list as follows: 'flipH flipV rot90'")
 parser.add_argument('-o', '--output', default='../output/annotation.json', help= 'Path to output file to write obtained annotations as coco')
+parser.add_argument('-p', '--print_output_folder', default = None, help='We print output if not None. Example: ../output/images')
 
 args = parser.parse_args()
 
@@ -33,9 +35,15 @@ if args.transformations:
             t,u = test_time_augmentation.create_flip_transformation("horizontal")
         if trans_name == "flipV":
             t,u = test_time_augmentation.create_flip_transformation("vertical")
+        if trans_name == "None":
+            t,u = None, None
 
         transform_images_functions.append(t)
         untransform_point_functions.append(u)
+
+if args.print_output_folder:                                   # De we print outputs?
+    if not os.path.isdir(args.print_output_folder):            # We will ensure the existence of the output folder.
+        os.makedirs(args.print_output_folder)
 
 coco_annotations = coco_format_utils.Coco_Annotation_Set()
 print(coco_annotations)
@@ -43,28 +51,48 @@ vidcap = cv2.VideoCapture(args.video)
 
 # Main loop
 image_index = 0
-succes, image = vidcap.read()           # We try to read the next image
-while succes:   # While there is a next image.
+success, image = vidcap.read()           # We try to read the next image
+obj_id = 0
+
+while success:   # While there is a next image.
+
+    frame_filename = "frame_{:0>6}.png".format(image_index)
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-    images_batch = [rgb_image]
+    initial_time = time.time()
+    images_batch = []                          # We create the images batch.
 
-    if args.transformations:
+    if args.transformations:                            # We apply transformations if there is any.
         for trans in transform_images_functions:
-            images_batch.append(trans(rgb_image))
+            if trans:
+                images_batch.append(trans(rgb_image))
+            else:
+                images_batch.append(rgb_image)
 
-    preprocessed_images = object_detector.preprocess(np.array(images_batch))
-    objects = object_detector.process(preprocessed_images)
-    objects = object_detector.filter_output_by_confidence_treshold(objects)
+    preprocessed_images = object_detector.preprocess(np.array(images_batch))        # We preprocess the batch.
+    outputs = object_detector.process(preprocessed_images)                          # We apply the model.
+    outputs = object_detector.filter_output_by_confidence_treshold(outputs)         # We filter output using confidence.
+    #print(outputs)
 
-    drawn_image = utils.print_detections_on_image(objects[0], image)
-    cv2.imshow("drawn", drawn_image)
-    cv2.waitKey(0)
+    coco_object_list = []   # List to contain the set of coco object from all images.
 
-    succes, image = vidcap.read()           # We try to read the next image
+    # Now we create the coco format annotation for this image.
+    for img_output, img_rgb in zip(outputs, images_batch):                                  # For outputs from each image...
+        for bbox, _class, confidence in zip(img_output[0], img_output[1], img_output[2]):   
+            #print(bbox)
+            #print(_class)
+            #print(confidence)
+            coco_object = coco_format_utils.Coco_Annotation_Object(bbox=bbox, category_id=_class, id=obj_id, image_id=image_index)
+            coco_annotations.insert_coco_annotation_object(coco_object)
+            obj_id+=1
+
+        if args.print_output_folder:
+            drawn_image = utils.print_detections_on_image(img_output, img_rgb[:,:,[2,1,0]])
+            cv2.imwrite(os.path.join(args.print_output_folder, frame_filename), drawn_image)
+
+    print(f"process time {time.time()-initial_time}")
+
+    success, image = vidcap.read()           # We try to read the next image
     image_index += 1
 
-    quit()
-
-
-
+    coco_annotations.to_json(args.output)

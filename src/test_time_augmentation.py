@@ -167,6 +167,13 @@ def create_composition_of_transformations(input_functions):
 
     return transformation_composition, untransformation_composition
 
+def unify_test_time_augmentation_outputs(detected_objects_coco_format_list):
+    """
+
+    """
+    return detected_objects_coco_format_list
+    
+
 #  Felzenszwalb et al. from https://www.pyimagesearch.com/2014/11/17/non-maximum-suppression-object-detection-python/
 def non_max_suppression_slow(bboxes, overlapThresh):
 	# if there are no boxes, return an empty list

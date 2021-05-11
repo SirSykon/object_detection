@@ -2,7 +2,6 @@ import torch
 import torchvision
 import numpy as np
 from .object_detector import Object_Detector
-import time
 
 # Following https://pytorch.org/vision/stable/models.html#faster-r-cnn
 
@@ -30,13 +29,11 @@ class Faster_RCNN_Torch_Object_Detector(Object_Detector):
         # We ensure images is a torch tensor with channel-first.
         assert type(images) == torch.Tensor
         assert list(images.size())[1] == 3
-        initial_time = time.time()
 
         with torch.no_grad():   # We are not training so we do not need grads.
             outputs = self.model(images)
 
         outputs = self.turn_faster_rcnn_outputs_into_coco_format(outputs)   # We need to manipulate the output.
-        print(f"process time {time.time()-initial_time}")
         return outputs
     
     def preprocess(self, images, to = "cuda"):
