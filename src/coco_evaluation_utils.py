@@ -1,8 +1,6 @@
-import matplotlib.pyplot as plt
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 import numpy as np
-import skimage.io as io
 import pylab
 import json 
 
@@ -27,7 +25,6 @@ def evaluate(gt_annotation_file_path, res_annotation_file_path):
     cocoGt=COCO(gt_annotation_file_path)
     #initialize COCO detections api
     # use the generated results
-    resFile = '/content/test_data_normal.json'
     cocoDt=cocoGt.loadRes(res_annotation_file_path)
 
 
@@ -44,10 +41,9 @@ def evaluate(gt_annotation_file_path, res_annotation_file_path):
     # running box evaluation
     cocoEval = COCOeval(cocoGt,cocoDt,annType)
 
-
     cocoEval.params.imgIds  = imgIds
 
-    cocoEval.params.catIds = [3] # 1 stands for the 'person' class, you can increase or decrease the category as needed
+    #cocoEval.params.catIds = [3] # 1 stands for the 'person' class, you can increase or decrease the category as needed
 
     cocoEval.evaluate()
     cocoEval.accumulate()

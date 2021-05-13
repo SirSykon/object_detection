@@ -41,6 +41,9 @@ if args.transformations:
         transform_images_functions.append(t)
         untransform_point_functions.append(u)
 
+if not os.path.isdir(os.path.dirname(args.output)):
+    os.makedirs(os.path.dirname(args.output))
+
 if args.print_output_folder:                                   # De we print outputs?
     if not os.path.isdir(args.print_output_folder):            # We will ensure the existence of the output folder.
         os.makedirs(args.print_output_folder)
@@ -50,17 +53,18 @@ print(coco_annotations)
 vidcap = cv2.VideoCapture(args.video)
 
 # Main loop
-image_index = 0
+image_index = 1
 success, image = vidcap.read()           # We try to read the next image
-obj_id = 0
+obj_id = 1
 
 while success:   # While there is a next image.
 
     frame_filename = "frame_{:0>6}.png".format(image_index)
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-    initial_time = time.time()
     images_batch = []                          # We create the images batch.
+
+    initial_time = time.time()
 
     if args.transformations:                            # We apply transformations if there is any.
         for trans in transform_images_functions:
@@ -82,7 +86,7 @@ while success:   # While there is a next image.
             #print(bbox)
             #print(_class)
             #print(confidence)
-            coco_object = coco_format_utils.Coco_Annotation_Object(bbox=bbox, category_id=_class, id=obj_id, image_id=image_index)
+            coco_object = coco_format_utils.Coco_Annotation_Object(bbox=bbox, category_id=_class, id=obj_id, image_id=image_index, score=confidence)
             coco_annotations.insert_coco_annotation_object(coco_object)
             obj_id+=1
 
@@ -95,4 +99,4 @@ while success:   # While there is a next image.
     success, image = vidcap.read()           # We try to read the next image
     image_index += 1
 
-    coco_annotations.to_json(args.output)
+coco_annotations.to_json(args.output)

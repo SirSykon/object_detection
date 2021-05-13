@@ -6,7 +6,7 @@ def generate_coco_format_info():
         "description": "COCO 2017 Dataset",
         "url": "https://github.com/SirSykon/object_detection",
         "version": "0.1",
-        "year": 2020,
+        "year": 2021,
         "contributor": "Jorge García <jrggcgz@gmail.com>",
         "date_created": "2020/05/04"
     }
@@ -73,9 +73,9 @@ class Coco_Annotation_Set(object):
     def insert_coco_annotation_object(self, coco_annotation_object):
         self.annotations.append(coco_annotation_object)
 
-    def insert_annotation(self, segmentation, area, iscrowd, image_id, bbox, category_id):
+    def insert_annotation(self, id, segmentation, area, iscrowd, image_id, bbox, category_id):
         ann = Coco_Annotation_Object(
-            id = image_id,
+            id = id,
             segmentation = segmentation,
             area = area,
             iscrowd = iscrowd,
@@ -88,11 +88,11 @@ class Coco_Annotation_Set(object):
     def __str__(self):
         return str(self.to_dict())
 
-    def to_dict(self):
+    def to_dict(self, only_essential_data = True):
 
         anns = []
         for ann in self.annotations:
-            anns.append(ann.to_dict())
+            anns.append(ann.to_dict(only_essential_data = only_essential_data))
 
         d = {
             "info" : self.info,
@@ -103,11 +103,19 @@ class Coco_Annotation_Set(object):
 
         return d
 
+    def annotations_list_dict(self):
+        return self.to_dict()["annotations"]
+
     def __str__(self):
         return str(self.to_dict())
 
-    def to_json(self, save_path):
-        data = self.to_dict()
+    def to_json(self, save_path, only_annotations = True, only_essential_data = True):
+        
+        data = self.to_dict(only_essential_data=only_essential_data)
+
+        if only_annotations: 
+            data = data["annotations"]
+            
         with open(save_path, "w") as f:
             json.dump(data, f)
 
@@ -187,7 +195,7 @@ class Coco_Annotation_Object(object):
 
     """
 
-    def __init__(self, bbox:list, category_id:int, id:int = None, segmentation:list = None, area:float = None, iscrowd:int = 0, image_id:int = None, image_shape:list = None, bbox_format:str = "coco"):
+    def __init__(self, bbox:list, category_id:int, score:float, image_id:int, id:int = None, segmentation:list = None, area:float = None, iscrowd:int = 0, image_shape:list = None, bbox_format:str = "coco"):
         """
         Args:
             bbox (list): defines the position of the object. its structure changes according to bbox_format as follows:
@@ -203,6 +211,7 @@ class Coco_Annotation_Object(object):
             image_id (int, optional): Image identification number. Defaults to None.
             image_shape (list, optional): Image object shape. Defaults to None.
             bbox_format (str, optional): defines how bbox is. Format can be "coco" (default), "absolute" or "relative". Defaults to "coco".
+            score (float): defines the category_id confidence.
 
         Returns:
             Coco_Annotation_Object: Class to contain Image annotations information following COCO format as described in https://www.immersivelimit.com/tutorials/create-coco-annotations-from-scratch 
@@ -218,6 +227,7 @@ class Coco_Annotation_Object(object):
         self.image_id = image_id
         self.bbox = np.array(bbox)
         self.category_id = category_id
+        self.score = score
         self.id = id
 
         self.bbox_format = bbox_format
@@ -240,21 +250,23 @@ class Coco_Annotation_Object(object):
         """
         self.image_shape = input_shape
 
-    def to_dict(self) -> dict:
+    def to_dict(self, only_essential_data = True) -> dict:
         """Method to turn this annotation into a dictionary with only coco data.
 
         Returns:
             dict[str, object]: dictionary with only coco data.
         """
         d = {
-            "segmentation" : self.segmentation.tolist(),
-            "area" :  self.area,
-            "iscrowd" : self.iscrowd,
             "image_id" : int(self.image_id),
             "bbox" : self.bbox.tolist(),
             "category_id" : int(self.category_id),
-            "id" : int(self.id)
+            "score" : float(self.score)
             }
+        if not only_essential_data:
+            d["id"] = int(self.id)
+            d["segmentation"] = self.segmentation.tolist()
+            d["area"] =  self.area
+            d["iscrowd"] = self.iscrowd
 
         return d
 
