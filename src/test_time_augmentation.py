@@ -11,6 +11,7 @@ All functions will assume mathematical point standard (width, height).
 """
 
 import numpy as np
+import iou_utils
 
 def create_flip_transformation(axis):
     """Function to create an image flip transformation and the function to transpose information from one image to the original.
@@ -172,7 +173,118 @@ def unify_test_time_augmentation_outputs(detected_objects_coco_format_list):
 
     """
     return detected_objects_coco_format_list
-    
+
+
+def bbox_structure_to_square(bbox):
+    """Function to turn from bbox coco struture to square.
+
+    [x,y,width,height] -> [min_height, min_width, max_height, max_width] 
+    """
+
+    x,y,width,height = bbox
+    sq = [y,x,y+height,x+width]
+    return sq
+
+
+def intersection_over_union(bbox1, bbox2):
+    sq1 = bbox_structure_to_square(bbox1)
+    sq2 = bbox_structure_to_square(bbox2)
+
+    return iou_utils.intersection_over_union_using_squares(sq1, sq2)
+
+def get_most_confiable_object_idx(*lists):
+
+    max_confidence = None
+    max_confidence_object_idx = None
+    max_confidence_object_list_idx = None
+    for l_idx, l in enumerate(lists):
+        _, _, confidences = l
+        current_list_max_confidence = confidences.max()
+        if not max_confidence or max_confidence < current_list_max_confidence:
+            max_confidence = current_list_max_confidence
+            max_confidence_object_idx = confidences.index(max_confidence)
+            max_confidence_object_list_idx = l_idx
+
+    return max_confidence_object_idx, max_confidence_object_list_idx
+
+def get_same_object(obj, list, thd, ignore_class = True):
+    """Function to get the nearest object to obj from list of object with minimum an IOU of thd.
+
+    Args:
+        obj ([type]): [description]
+        list (list (detected_objects)): [description]
+        thd (float): [description]
+        ignore_class (bool, optional): [description]. Defaults to True.
+
+    Returns:
+        [type]: [description]
+    """
+    list_bboxes, list_classes, _ = list
+    obj_bbox, obj_class, _ = obj
+
+    greater_iou = None
+    greater_iou_idx = None
+
+    for idx, bbox, _class in enumerate(zip(list_bboxes, list_classes)):
+        iou = intersection_over_union(obj_bbox, bbox)
+
+        if ignore_class or obj_class == _class:
+
+            if iou > thd and ((not greater_iou) or iou > greater_iou):
+                greater_iou = iou
+                greater_iou_idx = idx
+
+    return greater_iou_idx
+
+def create_clusters(*_lists, threshold):
+    """Function to create clusters by assigning equivalences between N>1 lists of objects based on their bboxes IoU.    
+    _lists (list(tuple)) : An arbitrary list of tuples with shape (bboxes, classes, confidences)
+    """
+    lists = _lists.coyp()
+    n_lists = len(lists)
+    # Get the most confiable object.
+
+    clusters = []
+
+    while len(lists) > 0:
+        most_confiable_object_idx, most_confiable_object_list_idx = get_most_confiable_object_idx(lists)
+        most_confiable_object_list = lists[most_confiable_object_list_idx]
+        most_confiable_object_list_bboxes, most_confiable_object_list_classes, most_confiable_object_list_confidences = most_confiable_object_list
+        
+        most_confiable_object_bbox = most_confiable_object_list_bboxes.pop(most_confiable_object_idx)
+        most_confiable_object_class = most_confiable_object_list_classes.pop(most_confiable_object_idx)
+        most_confiable_object_confidence = most_confiable_object_list_confidences.pop(most_confiable_object_idx)
+        assert len(most_confiable_object_list_bboxes) == len(most_confiable_object_list_classes) == len(most_confiable_object_list_confidences)
+        most_confiable_object = (most_confiable_object_bbox, most_confiable_object_class, most_confiable_object_confidence)
+
+        cluster_bboxes = [most_confiable_object_bbox]
+        cluster_classes = [most_confiable_object_class]
+        cluster_confidences = [most_confiable_object_confidence]
+
+        # Look for that object in other lists.
+        for list_idx in range(n_lists):
+            if list_idx != most_confiable_object_list_idx:
+                current_list = lists[list_idx]
+                # We get the nearest object to most_confiable_object in current_list with a given IoU treshold.
+                same_object_from_current_list_idx = get_same_object(most_confiable_object, current_list, threshold)
+                # if not None, we insert it in cluster and delete from the list.
+                if same_object_from_current_list_idx:
+                    current_list_bboxes, current_list_classes, current_list_conficendes = current_list
+                    cluster_bboxes.append(current_list_bboxes.pop(same_object_from_current_list_idx))
+                    cluster_classes.append(current_list_classes.pop(same_object_from_current_list_idx))
+                    cluster_confidences.append(current_list_conficendes.pop(same_object_from_current_list_idx))
+                    assert len(current_list_bboxes) == len(current_list_classes) == len(current_list_conficendes)
+
+        cluster = (cluster_bboxes, cluster_classes, cluster_confidences)
+        clusters.append(cluster)
+
+        # if most_confiable_object_list is now empty, we should now delete it from lists.
+        if len(most_confiable_object_list) == 0:
+            lists.pop(most_confiable_object_list_idx)
+
+    print(clusters)
+
+    return clusters
 
 #  Felzenszwalb et al. from https://www.pyimagesearch.com/2014/11/17/non-maximum-suppression-object-detection-python/
 def non_max_suppression_slow(bboxes, overlapThresh):
