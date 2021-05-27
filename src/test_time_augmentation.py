@@ -207,19 +207,19 @@ def get_most_confiable_object_idx(*lists):
 
     return max_confidence_object_idx, max_confidence_object_list_idx
 
-def get_same_object(obj, list, thd, ignore_class = True):
+def get_same_object(obj, detections_list, thd, ignore_class = True):
     """Function to get the nearest object to obj from list of object with minimum an IOU of thd.
 
     Args:
-        obj ([type]): [description]
-        list (list (detected_objects)): [description]
-        thd (float): [description]
-        ignore_class (bool, optional): [description]. Defaults to True.
+        obj (tuple(bbox, class, confidence)): obj to compare.
+        detections_list (tuple(list(bbox), list(class), list(confidence))): List containing dected objects to compare obj.
+        thd (float): Minimum iou to be a candidate.
+        ignore_class (bool, optional): Do we ignore class to assign equivalence?. Defaults to True.
 
     Returns:
-        [type]: [description]
+        int: idx from detections_list[0] with the greater iou compared to obj.
     """
-    list_bboxes, list_classes, _ = list
+    list_bboxes, list_classes, _ = detections_list
     obj_bbox, obj_class, _ = obj
 
     greater_iou = None
@@ -237,8 +237,13 @@ def get_same_object(obj, list, thd, ignore_class = True):
     return greater_iou_idx
 
 def create_clusters(*_lists, threshold):
-    """Function to create clusters by assigning equivalences between N>1 lists of objects based on their bboxes IoU.    
-    _lists (list(tuple)) : An arbitrary list of tuples with shape (bboxes, classes, confidences)
+    """Function to create clusters by assigning equivalences between N>1 lists of objects based on their bboxes IoU.
+
+    Args:  
+        _lists (list(tuple)) : An arbitrary list of tuples with structure (list(bbox), list(classs), list(confidences))
+
+    Returns:
+
     """
     lists = _lists.coyp()
     n_lists = len(lists)
@@ -289,7 +294,7 @@ def create_clusters(*_lists, threshold):
 #  Felzenszwalb et al. from https://www.pyimagesearch.com/2014/11/17/non-maximum-suppression-object-detection-python/
 def non_max_suppression_slow(bboxes, overlapThresh):
 	# if there are no boxes, return an empty list
-	if len(boxes) == 0:
+	if len(bboxes) == 0:
 		return []
 	# initialize the list of picked indexes
 	pick = []
@@ -316,7 +321,7 @@ def non_max_suppression_slow(bboxes, overlapThresh):
 		suppress = [last]
 
 		# loop over all indexes in the indexes list
-		for pos in xrange(0, last):
+		for pos in range(0, last):
 			# grab the current index
 			j = idxs[pos]
 			# find the largest (x, y) coordinates for the start of
