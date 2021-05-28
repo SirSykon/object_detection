@@ -3,8 +3,8 @@ import os
 import cv2
 import time
 import numpy as np
-from object_detectors import faster_rcnn_torch_object_detector
-import utils
+from object_detectors import faster_rcnn_torch_object_detector, ssd_object_detector, yolo_object_detector
+import print_utils
 import test_time_augmentation
 import coco_format_utils
 
@@ -22,6 +22,12 @@ args = parser.parse_args()
 if args.model == 'faster':
     print("Loading Faster RCNN torch object detector")
     object_detector = faster_rcnn_torch_object_detector.Faster_RCNN_Torch_Object_Detector()
+if args.model == 'ssd':
+    print("Loading SSD torch object detector")
+    object_detector = ssd_object_detector.SSD_Object_Detector()
+if args.model == 'yolo':
+    print("Loading YOLO torch object detector")
+    object_detector = yolo_object_detector.YOLO_Object_Detector()
 
 if not os.path.isfile(args.video):
     print(f"{args.video} is not file.")
@@ -91,7 +97,7 @@ while success:   # While there is a next image.
             obj_id+=1
 
         if args.print_output_folder:
-            drawn_image = utils.print_detections_on_image(img_output, img_rgb[:,:,[2,1,0]])
+            drawn_image = print_utils.print_detections_on_image(img_output, img_rgb[:,:,[2,1,0]])
             cv2.imwrite(os.path.join(args.print_output_folder, frame_filename), drawn_image)
 
     print(f"process time {time.time()-initial_time}")

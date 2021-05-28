@@ -95,7 +95,7 @@ class SSD_Object_Detector(Object_Detector):
                 y, h = [val * height for val in [top, bot-top]]
                 new_bbox = [x, y, w, h]
                 new_bboxes.append(new_bbox)
-            new_results.append([new_bboxes, classes, confidences])
+            new_results.append([np.array(new_bboxes), classes, confidences])
 
         return new_results
 
