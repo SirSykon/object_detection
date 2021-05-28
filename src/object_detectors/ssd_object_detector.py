@@ -84,7 +84,6 @@ class SSD_Object_Detector(Object_Detector):
         #print(results)
         new_results = []
         for res, original_shape in zip(results, self.tam_images_original):
-            print(res)
             bboxes, classes, confidences = res
             height, width, _ = original_shape
             new_bboxes = []
@@ -95,7 +94,7 @@ class SSD_Object_Detector(Object_Detector):
                 y, h = [val * height for val in [top, bot-top]]
                 new_bbox = [x, y, w, h]
                 new_bboxes.append(new_bbox)
-            new_results.append([np.array(new_bboxes), classes, confidences])
+            new_results.append([np.int32(np.array(new_bboxes)), np.int32(classes), confidences])
 
         return new_results
 

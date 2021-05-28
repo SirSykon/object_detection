@@ -12,7 +12,7 @@ class YOLO_Object_Detector(Object_Detector):
 
     def __init__(self, to="cuda"):
         super().__init__()
-        self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
+        self.model = torch.hub.load('ultralytics/yolov5', 'yolov5l')
         self.model.to(to)
         self.to = to
         self.tam_images_original = []
@@ -85,8 +85,8 @@ class YOLO_Object_Detector(Object_Detector):
                 new_bboxes.append(new_bbox)
                 new_classes.append(class_)
                 new_confidences.append(confidence)
-            array_bboxes = np.array(new_bboxes)
-            array_classes = np.array(new_classes)
+            array_bboxes = np.int32(np.array(new_bboxes))
+            array_classes = np.int32(np.array(new_classes)) + 1 # Coco uses 0 as "background", not as "person"
             array_confidences = np.array(new_confidences)
             new_results.append([array_bboxes, array_classes, array_confidences])  
         

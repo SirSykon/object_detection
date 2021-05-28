@@ -84,8 +84,8 @@ class Faster_RCNN_Torch_Object_Detector(Object_Detector):
                 labels = labels.to("cpu")
                 scores = scores.to("cpu")
             
-            bboxes = bboxes.numpy()
-            labels = labels.numpy()
+            bboxes = np.int32(bboxes.numpy())
+            labels = np.int32(labels.numpy())
             scores = scores.numpy()
             new_all_images_output.append([bboxes, labels, scores])
         

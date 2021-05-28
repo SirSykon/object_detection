@@ -29,6 +29,11 @@ if args.model == 'yolo':
     print("Loading YOLO torch object detector")
     object_detector = yolo_object_detector.YOLO_Object_Detector()
 
+print(f"Processing {args.video}")
+print(f"Using transformations {args.transformations}")
+print(f"Output results json will be written in {args.output}")
+print(f"Output images will be saved in {args.print_output_folder}")
+
 if not os.path.isfile(args.video):
     print(f"{args.video} is not file.")
 
@@ -36,7 +41,6 @@ if args.transformations:
     transform_images_functions = []
     untransform_point_functions = []
     for trans_name in args.transformations:
-        print(trans_name)
         if trans_name == "flipH":
             t,u = test_time_augmentation.create_flip_transformation("horizontal")
         if trans_name == "flipV":
@@ -55,13 +59,15 @@ if args.print_output_folder:                                   # De we print out
         os.makedirs(args.print_output_folder)
 
 coco_annotations = coco_format_utils.Coco_Annotation_Set()
-print(coco_annotations)
 vidcap = cv2.VideoCapture(args.video)
 
 # Main loop
 image_index = 1
 success, image = vidcap.read()           # We try to read the next image
 obj_id = 1
+process_times_list = []
+initial_process_time = time.time()
+print(f"Start video process.")
 
 while success:   # While there is a next image.
 
@@ -70,7 +76,7 @@ while success:   # While there is a next image.
 
     images_batch = []                          # We create the images batch.
 
-    initial_time = time.time()
+    initial_frame_time = time.time()
 
     if args.transformations:                            # We apply transformations if there is any.
         for trans in transform_images_functions:
@@ -81,7 +87,7 @@ while success:   # While there is a next image.
 
     preprocessed_images = object_detector.preprocess(images_batch)                  # We preprocess the batch.
     outputs = object_detector.process(preprocessed_images)                          # We apply the model.
-    outputs = object_detector.filter_output_by_confidence_treshold(outputs)         # We filter output using confidence.
+    outputs = object_detector.filter_output_by_confidence_treshold(outputs, treshold = 0.5)         # We filter output using confidence.
     #print(outputs)
 
     coco_object_list = []   # List to contain the set of coco object from all images.
@@ -89,9 +95,6 @@ while success:   # While there is a next image.
     # Now we create the coco format annotation for this image.
     for img_output, img_rgb in zip(outputs, images_batch):                                  # For outputs from each image...
         for bbox, _class, confidence in zip(img_output[0], img_output[1], img_output[2]):   
-            #print(bbox)
-            #print(_class)
-            #print(confidence)
             coco_object = coco_format_utils.Coco_Annotation_Object(bbox=bbox, category_id=_class, id=obj_id, image_id=image_index, score=confidence)
             coco_annotations.insert_coco_annotation_object(coco_object)
             obj_id+=1
@@ -100,9 +103,12 @@ while success:   # While there is a next image.
             drawn_image = print_utils.print_detections_on_image(img_output, img_rgb[:,:,[2,1,0]])
             cv2.imwrite(os.path.join(args.print_output_folder, frame_filename), drawn_image)
 
-    print(f"process time {time.time()-initial_time}")
+    process_time = time.time()-initial_frame_time
+    process_times_list.append(process_time)
 
     success, image = vidcap.read()           # We try to read the next image
     image_index += 1
+
+print(f"Total process time {time.time()-initial_process_time}, average time per frame {np.array(process_times_list).mean()}")
 
 coco_annotations.to_json(args.output)
