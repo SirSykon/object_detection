@@ -79,7 +79,7 @@ while success:   # While there is a next image.
             else:
                 images_batch.append(rgb_image)
 
-    preprocessed_images = object_detector.preprocess(np.array(images_batch))        # We preprocess the batch.
+    preprocessed_images = object_detector.preprocess(images_batch)                  # We preprocess the batch.
     outputs = object_detector.process(preprocessed_images)                          # We apply the model.
     outputs = object_detector.filter_output_by_confidence_treshold(outputs)         # We filter output using confidence.
     #print(outputs)

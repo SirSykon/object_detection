@@ -40,16 +40,16 @@ class Faster_RCNN_Torch_Object_Detector(Object_Detector):
         """ Function to preprocess a batch of images.
 
         Args:
-            images (np.ndarray): batch of images between 0 and 255. Expected dimensions are (batch, height, width, channel) or (batch, channel, height, width).
+            images (list(np.ndarray)): batch of images between 0 and 255. Expected dimensions are (batch, height, width, channel) or (batch, channel, height, width).
 
         Returns:
             A torch tensor with the preprocessed images as self.model expects.
         """  
-        assert len(images.shape) == 4
+        assert len(images[0].shape) == 3
 
         # We copy the images np array to ensure they are not destroyed.
         imgs = images.copy()
-        if imgs.shape[-1] == 3: # We guess the last dimensions is channels.                
+        if imgs[0].shape[-1] == 3: # We guess the last dimensions is channels.                
             # We need channel first so we transform the data.
             imgs = np.moveaxis(imgs,-1, 1)
         # We normalize.
