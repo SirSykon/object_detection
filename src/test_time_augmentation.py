@@ -124,16 +124,15 @@ def untransform_coco_format_object_information(object_detection_information, unt
         # We don't know which transformation was applied so we don't know wich untramsformation has been applied.
         # so we need to obtain the top-left corner (the minimum height and width) and the maximum one.
         aux_array = np.array([untransformed_initial_top_left, untransformed_initial_top_right, untransformed_initial_bottom_left, untransformed_initial_bottom_right])
-        print(aux_array)
         untransformed_top_left = aux_array.min(0)       # We get the minimum positions.
         untransformed_bottom_right = aux_array.max(0)   # We get the maximum positions.
         width_and_height = untransformed_bottom_right-untransformed_top_left
 
         new_bbox = [untransformed_top_left[0], untransformed_top_left[1], width_and_height[0], width_and_height[1]]
 
-    new_bboxes.append(new_bbox)
+        new_bboxes.append(new_bbox)
 
-    return [new_bboxes, classes, confidences]
+    return [np.array(new_bboxes), np.array(classes), np.array(confidences)]
 
 def create_composition_of_transformations(input_functions):
     """Function to create a composition of transformations.
@@ -168,12 +167,22 @@ def create_composition_of_transformations(input_functions):
 
     return transformation_composition, untransformation_composition
 
-def unify_test_time_augmentation_outputs(detected_objects_coco_format_list):
+def unify_clusters(clusters):
     """
 
     """
-    return detected_objects_coco_format_list
+    new_bboxes = []
+    new_classes = []
+    new_confidences = []
+    for cluster in clusters:
+        bbox = cluster[0][0]
+        _class = cluster[1][0]
+        confidence = cluster[2][0]
+        new_bboxes.append(bbox)
+        new_classes.append(_class)
+        new_confidences.append(confidence)
 
+    return [np.array(new_bboxes), np.array(new_classes), np.array(new_confidences)]
 
 def bbox_structure_to_square(bbox):
     """Function to turn from bbox coco struture to square.
@@ -192,7 +201,7 @@ def intersection_over_union(bbox1, bbox2):
 
     return iou_utils.intersection_over_union_using_squares(sq1, sq2)
 
-def get_most_confiable_object_idx(*lists):
+def get_most_confiable_object_idx(lists):
 
     max_confidence = None
     max_confidence_object_idx = None
@@ -202,7 +211,7 @@ def get_most_confiable_object_idx(*lists):
         current_list_max_confidence = confidences.max()
         if not max_confidence or max_confidence < current_list_max_confidence:
             max_confidence = current_list_max_confidence
-            max_confidence_object_idx = confidences.index(max_confidence)
+            max_confidence_object_idx = np.where(confidences==max_confidence)[0][0]
             max_confidence_object_list_idx = l_idx
 
     return max_confidence_object_idx, max_confidence_object_list_idx
@@ -219,15 +228,14 @@ def get_same_object(obj, detections_list, thd, ignore_class = True):
     Returns:
         int: idx from detections_list[0] with the greater iou compared to obj.
     """
+
     list_bboxes, list_classes, _ = detections_list
     obj_bbox, obj_class, _ = obj
-
     greater_iou = None
     greater_iou_idx = None
 
-    for idx, bbox, _class in enumerate(zip(list_bboxes, list_classes)):
+    for idx, (bbox, _class) in enumerate(zip(list_bboxes, list_classes)):
         iou = intersection_over_union(obj_bbox, bbox)
-
         if ignore_class or obj_class == _class:
 
             if iou > thd and ((not greater_iou) or iou > greater_iou):
@@ -236,17 +244,16 @@ def get_same_object(obj, detections_list, thd, ignore_class = True):
 
     return greater_iou_idx
 
-def create_clusters(*_lists, threshold):
+def create_clusters(_lists, threshold):
     """Function to create clusters by assigning equivalences between N>1 lists of objects based on their bboxes IoU.
 
     Args:  
-        _lists (list(tuple)) : An arbitrary list of tuples with structure (list(bbox), list(classs), list(confidences))
+        _lists (list(tuple)) : An arbitrary list of tuples with structure (np.array(bbox), np.array(classs), np.array(confidences))
 
     Returns:
 
     """
-    lists = _lists.coyp()
-    n_lists = len(lists)
+    lists = _lists.copy()
     # Get the most confiable object.
 
     clusters = []
@@ -255,39 +262,75 @@ def create_clusters(*_lists, threshold):
         most_confiable_object_idx, most_confiable_object_list_idx = get_most_confiable_object_idx(lists)
         most_confiable_object_list = lists[most_confiable_object_list_idx]
         most_confiable_object_list_bboxes, most_confiable_object_list_classes, most_confiable_object_list_confidences = most_confiable_object_list
-        
-        most_confiable_object_bbox = most_confiable_object_list_bboxes.pop(most_confiable_object_idx)
-        most_confiable_object_class = most_confiable_object_list_classes.pop(most_confiable_object_idx)
-        most_confiable_object_confidence = most_confiable_object_list_confidences.pop(most_confiable_object_idx)
-        assert len(most_confiable_object_list_bboxes) == len(most_confiable_object_list_classes) == len(most_confiable_object_list_confidences)
+
+        # We need to create a filter to exclude the selected object from lists.
+        filter_idx = most_confiable_object_list_classes.shape[0]*[True]
+        filter_idx[most_confiable_object_idx] = False
+
+        # We get the most confiable object information and exclude it from the lists.
+        most_confiable_object_bbox = most_confiable_object_list_bboxes[most_confiable_object_idx,:]
+        most_confiable_object_list_bboxes = most_confiable_object_list_bboxes[filter_idx]
+        most_confiable_object_class = most_confiable_object_list_classes[most_confiable_object_idx]
+        most_confiable_object_list_classes = most_confiable_object_list_classes[filter_idx]
+        most_confiable_object_confidence = most_confiable_object_list_confidences[most_confiable_object_idx]
+        most_confiable_object_list_confidences = most_confiable_object_list_confidences[filter_idx]
+        assert most_confiable_object_list_bboxes.shape[0] == most_confiable_object_list_classes.shape[0] == most_confiable_object_list_confidences.shape[0]
+
+        # We update the list.
+        lists[most_confiable_object_list_idx] = [most_confiable_object_list_bboxes, most_confiable_object_list_classes, most_confiable_object_list_confidences]
+
+        # We generate the most confiable object tuple.
         most_confiable_object = (most_confiable_object_bbox, most_confiable_object_class, most_confiable_object_confidence)
 
+        # We initialize the cluster.
         cluster_bboxes = [most_confiable_object_bbox]
         cluster_classes = [most_confiable_object_class]
         cluster_confidences = [most_confiable_object_confidence]
 
+        empty_lists_to_pop_idx = []
         # Look for that object in other lists.
-        for list_idx in range(n_lists):
+        for list_idx in range(len(lists)):
             if list_idx != most_confiable_object_list_idx:
                 current_list = lists[list_idx]
                 # We get the nearest object to most_confiable_object in current_list with a given IoU treshold.
                 same_object_from_current_list_idx = get_same_object(most_confiable_object, current_list, threshold)
                 # if not None, we insert it in cluster and delete from the list.
-                if same_object_from_current_list_idx:
+                if not same_object_from_current_list_idx is None:
+                    # We get the object data.
                     current_list_bboxes, current_list_classes, current_list_conficendes = current_list
-                    cluster_bboxes.append(current_list_bboxes.pop(same_object_from_current_list_idx))
-                    cluster_classes.append(current_list_classes.pop(same_object_from_current_list_idx))
-                    cluster_confidences.append(current_list_conficendes.pop(same_object_from_current_list_idx))
-                    assert len(current_list_bboxes) == len(current_list_classes) == len(current_list_conficendes)
 
-        cluster = (cluster_bboxes, cluster_classes, cluster_confidences)
+                    #We add data to the cluster.
+                    cluster_bboxes.append(current_list_bboxes[same_object_from_current_list_idx])
+                    cluster_classes.append(current_list_classes[same_object_from_current_list_idx])
+                    cluster_confidences.append(current_list_conficendes[same_object_from_current_list_idx])
+
+                    # We create a filter list to delete the selected object.
+                    current_list_filter_idx = current_list_classes.shape[0]*[True]
+                    current_list_filter_idx[same_object_from_current_list_idx] = False
+
+                    #We update the current list data.
+                    current_list_bboxes = current_list_bboxes[current_list_filter_idx]
+                    current_list_classes = current_list_classes[current_list_filter_idx]
+                    current_list_conficendes = current_list_conficendes[current_list_filter_idx]
+                    assert current_list_bboxes.shape[0] == current_list_classes.shape[0] == current_list_conficendes.shape[0]
+
+                    # if current list is not empty, we save the emaining data. If it's empty, we add to the list of lists to deleted.
+                    if current_list_classes.shape[0] != 0:
+                        current_list = current_list_bboxes, current_list_classes, current_list_conficendes
+                        lists[list_idx] = current_list
+                    else:
+                        empty_lists_to_pop_idx.append(list_idx)
+
+        cluster = (np.array(cluster_bboxes), np.array(cluster_classes), np.array(cluster_confidences))
         clusters.append(cluster)
 
-        # if most_confiable_object_list is now empty, we should now delete it from lists.
-        if len(most_confiable_object_list) == 0:
-            lists.pop(most_confiable_object_list_idx)
+        # if most_confiable_object_list is now empty, we add it to the list of lists to be deleted.
+        if most_confiable_object_list_classes.shape[0] == 0:
+            empty_lists_to_pop_idx.append(most_confiable_object_list_idx)
 
-    print(clusters)
+        # We delete empty lists.
+        for empty_list_idx in reversed(sorted(empty_lists_to_pop_idx)):            
+            lists.pop(empty_list_idx)
 
     return clusters
 

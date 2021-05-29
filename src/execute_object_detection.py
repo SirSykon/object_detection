@@ -55,8 +55,9 @@ if not os.path.isdir(os.path.dirname(args.output)):
     os.makedirs(os.path.dirname(args.output))
 
 if args.print_output_folder:                                   # De we print outputs?
-    if not os.path.isdir(args.print_output_folder):            # We will ensure the existence of the output folder.
-        os.makedirs(args.print_output_folder)
+    for trans_name in args.transformations:
+        if not os.path.isdir(os.path.join(args.print_output_folder,trans_name)):            # We will ensure the existence of the output folder.
+            os.makedirs(os.path.join(args.print_output_folder,trans_name))
 
 coco_annotations = coco_format_utils.Coco_Annotation_Set()
 vidcap = cv2.VideoCapture(args.video)
@@ -89,19 +90,33 @@ while success:   # While there is a next image.
     outputs = object_detector.process(preprocessed_images)                          # We apply the model.
     outputs = object_detector.filter_output_by_confidence_treshold(outputs, treshold = 0.5)         # We filter output using confidence.
     #print(outputs)
+    
+    if args.print_output_folder:
+        for img_output, img_rgb, trans_name in zip(outputs, images_batch, args.transformations):                             # For outputs from each image...
+            drawn_image = print_utils.print_detections_on_image(img_output, img_rgb[:,:,[2,1,0]])
+            cv2.imwrite(os.path.join(args.print_output_folder, trans_name, frame_filename), drawn_image)
 
-    coco_object_list = []   # List to contain the set of coco object from all images.
+    untransformed_outputs = []
+    for untransform_point_function, output in zip(untransform_point_functions,outputs):
+        if untransform_point_function:
+            _output = test_time_augmentation.untransform_coco_format_object_information(output, untransform_point_function, rgb_image.shape)
+        else:
+            _output = output
+        untransformed_outputs.append(_output)
+
+    clusters_objects = test_time_augmentation.create_clusters(untransformed_outputs,0.5)
+
+    unified_output = test_time_augmentation.unify_clusters(clusters_objects)
 
     # Now we create the coco format annotation for this image.
-    for img_output, img_rgb in zip(outputs, images_batch):                                  # For outputs from each image...
-        for bbox, _class, confidence in zip(img_output[0], img_output[1], img_output[2]):   
-            coco_object = coco_format_utils.Coco_Annotation_Object(bbox=bbox, category_id=_class, id=obj_id, image_id=image_index, score=confidence)
-            coco_annotations.insert_coco_annotation_object(coco_object)
-            obj_id+=1
+    for bbox, _class, confidence in zip(unified_output[0], unified_output[1], unified_output[2]):   
+        coco_object = coco_format_utils.Coco_Annotation_Object(bbox=bbox, category_id=_class, id=obj_id, image_id=image_index, score=confidence)
+        coco_annotations.insert_coco_annotation_object(coco_object)
+        obj_id+=1
 
-        if args.print_output_folder:
-            drawn_image = print_utils.print_detections_on_image(img_output, img_rgb[:,:,[2,1,0]])
-            cv2.imwrite(os.path.join(args.print_output_folder, frame_filename), drawn_image)
+    if args.print_output_folder:
+        drawn_image = print_utils.print_detections_on_image(unified_output, rgb_image[:,:,[2,1,0]])
+        cv2.imwrite(os.path.join(args.print_output_folder, frame_filename), drawn_image)
 
     process_time = time.time()-initial_frame_time
     process_times_list.append(process_time)
