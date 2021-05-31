@@ -202,7 +202,6 @@ def intersection_over_union(bbox1, bbox2):
     return iou_utils.intersection_over_union_using_squares(sq1, sq2)
 
 def get_most_confiable_object_idx(lists):
-
     max_confidence = None
     max_confidence_object_idx = None
     max_confidence_object_list_idx = None
@@ -256,8 +255,18 @@ def create_clusters(_lists, threshold):
     lists = _lists.copy()
     # Get the most confiable object.
 
-    clusters = []
+    # We delete empty lists of objects.
+    empty_lists_to_pop_idx = []
+    for idx, _list in enumerate(lists):
+        _, classes, _ = _list
+        if classes.shape[0] ==0:
+            empty_lists_to_pop_idx.append(idx)
 
+    # We delete empty lists.
+    for empty_list_idx in reversed(sorted(empty_lists_to_pop_idx)):            
+        lists.pop(empty_list_idx)
+
+    clusters = []   
     while len(lists) > 0:
         most_confiable_object_idx, most_confiable_object_list_idx = get_most_confiable_object_idx(lists)
         most_confiable_object_list = lists[most_confiable_object_list_idx]
