@@ -1,19 +1,23 @@
 import torch
 import torchvision
 import numpy as np
-from .object_detector import Object_Detector
+from ..object_detector import Object_Detector
 
 # Following https://pytorch.org/vision/stable/models.html#faster-r-cnn
 
-class Faster_RCNN_Torch_Object_Detector(Object_Detector):
-    def __init__(self, to="cuda"):
+class Faster_RCNN_Object_Detector(Object_Detector):
+    def __init__(self, to="cuda", model="default"):
         """Constructor.
         Args:
             to (str, optional): "cuda" (GPU) or "cpu" selects where to process the information. Defaults to "cuda".
+            model (str, optional): if "default", the default pretrained model will be loaded. Else, model should be a path to look for the model.
         """
-        super().__init__()
-        self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
-        self.model.eval()
+        super().__init__(model=model)
+        if model == "default":
+            self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+            self.model.eval()
+        else:
+            raise(NotImplementedError)
         self.model.to(to)
         self.to = to
 

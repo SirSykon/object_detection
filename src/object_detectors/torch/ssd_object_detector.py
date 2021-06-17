@@ -1,7 +1,7 @@
 """
 Author: Emilio Benzo <emiliojbenzo@gmail.com>
 """
-from .object_detector import Object_Detector
+from ..object_detector import Object_Detector
 import cv2
 import torch
 from matplotlib import pyplot as plt
@@ -9,21 +9,26 @@ import matplotlib.patches as patches
 import numpy as np
 
 class SSD_Object_Detector(Object_Detector):
+
+    def __init__(self, to="cuda", model="default"):
     """
     Class to act as abstract class in order to create wrappers following the same structure.
 
         Args:
             bbox_format (str, optional): defines how bbox is. Format can be "coco" (default), "absolute" or "relative". Defaults to "coco".
+            model (str, optional): if "default", the default pretrained model will be loaded. Else, model should be a path to look for the model.
     """
-    def __init__(self, to="cuda"):
-                super().__init__()
-                self.precision = 'fp32'
-                self.model = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_ssd', model_math=self.precision)
-                self.model.eval()
-                self.model.to(to)
-                self.utils = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_ssd_processing_utils')
-                self.to = to
-                self.tam_images_original = []
+        super().__init__(model=model)
+        if model == "default":        
+            self.precision = 'fp32'
+            self.model = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_ssd', model_math=self.precision)
+            self.model.eval()
+        else:
+            raise(NotImplementedError)
+        self.model.to(to)
+        self.utils = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_ssd_processing_utils')
+        self.to = to
+        self.tam_images_original = []
 
 
         #"""

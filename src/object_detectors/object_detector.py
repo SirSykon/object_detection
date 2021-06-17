@@ -11,14 +11,16 @@ class Object_Detector():
         Args:
             bbox_format (str, optional): defines how bbox is. Format can be "coco" (default), "absolute" or "relative". Defaults to "coco".
     """
-    def __init__(self, bbox_format="coco"):
+    def __init__(self, bbox_format="coco", model="default"):
         """
         Method to initialize the network.
 
         Args:
             bbox_format (str, optional): defines how bbox is. Format can be "coco" (default), "absolute" or "relative". Defaults to "coco".
+            model (str, optional): if "default", the default pretrained model will be loaded. Else, model should be a path to look for the model.
         """
         self.set_bbox_format(bbox_format)
+        self.model_origin = model
 
     def set_bbox_format(self, bbox_format):
         """

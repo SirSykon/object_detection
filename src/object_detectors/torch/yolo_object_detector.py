@@ -5,25 +5,30 @@ Author: Emilio Benzo <emiliojbenzo@gmail.com>
 import cv2
 import torch
 import numpy as np
-from .object_detector import Object_Detector
+from ..object_detector import Object_Detector
 
 
 class YOLO_Object_Detector(Object_Detector):
 
-    def __init__(self, to="cuda"):
-        super().__init__()
-        self.model = torch.hub.load('ultralytics/yolov5', 'yolov5l')
-        self.model.to(to)
-        self.to = to
-        self.tam_images_original = []
-
-
+    def __init__(self, to="cuda", model="default"):
         """
         Method to initialize the network.
 
         Args:
             bbox_format (str, optional): defines how bbox is. Format can be "coco" (default), "absolute" or "relative". Defaults to "coco".
+            model (str, optional): if "default", the default pretrained model will be loaded. Else, model should be a path to look for the model.
         """
+        super().__init__()
+        if model=="default":
+            self.model = torch.hub.load('ultralytics/yolov5', 'yolov5l')
+        else:
+            raise(NotImplementedError)
+        self.model.to(to)
+        self.to = to
+        self.tam_images_original = []
+
+
+
         #self.set_bbox_format(bbox_format)
 
     
