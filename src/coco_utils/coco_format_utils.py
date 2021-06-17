@@ -8,7 +8,7 @@ def generate_coco_format_info():
         "version": "0.1",
         "year": 2021,
         "contributor": "Jorge García <jrggcgz@gmail.com>",
-        "date_created": "2020/05/04"
+        "date_created": "2021/05/04"
     }
 
     return d
