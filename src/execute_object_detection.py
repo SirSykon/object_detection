@@ -45,6 +45,10 @@ if args.transformations:
             t,u = test_time_augmentation.create_flip_transformation("horizontal")
         if trans_name == "flipV":
             t,u = test_time_augmentation.create_flip_transformation("vertical")
+        if trans_name == "rot90":
+            t,u = test_time_augmentation.create_rotation_transformation(90)
+        if trans_name == "rot270":
+            t,u = test_time_augmentation.create_rotation_transformation(270)
         if trans_name == "None":
             t,u = None, None
 
@@ -74,7 +78,7 @@ while success:   # While there is a next image.
 
     frame_filename = "frame_{:0>6}.png".format(image_index)
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
+    print(rgb_image.shape)
     images_batch = []                          # We create the images batch.
 
     initial_frame_time = time.time()
@@ -87,6 +91,8 @@ while success:   # While there is a next image.
                 images_batch.append(rgb_image)
 
     preprocessed_images = object_detector.preprocess(images_batch)                  # We preprocess the batch.
+    print("Preprocessed image.")
+    print(preprocessed_images.shape)
     outputs = object_detector.process(preprocessed_images)                          # We apply the model.
     outputs = object_detector.filter_output_by_confidence_treshold(outputs, treshold = 0.5)         # We filter output using confidence.
     #print(outputs)

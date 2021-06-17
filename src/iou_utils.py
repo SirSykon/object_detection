@@ -125,7 +125,6 @@ def intersection_over_union_using_squares(sq1, sq2):
         [type]: [description]
     """
 
-
     intersection = intersection_between_two_rectangles(sq1,sq2)
     union = union_of_two_rectangles(sq1,sq2)
     

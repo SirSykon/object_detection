@@ -53,11 +53,14 @@ class SSD_Object_Detector(Object_Detector):
         """
         with torch.no_grad():   # We are not training so we do not need grads.
             detections_batch = self.model(images)
-
+        print(detections_batch[0].shape)
+        print(detections_batch[1].shape)
+        print("results_per_input")
         results_per_input = self.utils.decode_results(detections_batch)
+        print(results_per_input)
         outputs = self.turn_ssd_rcnn_outputs_into_coco_format(results_per_input)
 
-
+        print("\n")
         return outputs
 
     def preprocess(self, images):
