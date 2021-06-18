@@ -17,22 +17,26 @@ class Coco_Annotation_Set(object):
     """ 
     Class to contain a set of Coco annotations.
     """
-    def __init__(self, json_file_path:str = None, info:dict = None, licenses:list = None, images:list = None):
-        if info:
-            self.info = info
-        else:
+    def __init__(self, json_file_path:str = None, info:dict = None, licenses:list = None, images:list = None, categories:list = None):
+        if info is None:
             self.info = generate_coco_format_info()
-        if licenses:
+        else:            
+            self.info = info
+        if licenses is None:            
+            self.licenses = [{"name": "", "id": 0, "url": ""}]
+        else:
             self.licenses = licenses
-        else:
-            self.licenses = []
-        if images:
-            self.images = images
-        else:
+        if images is None:
             self.images = []
+        else:
+            self.images = images
+        if categories is None:
+            categories = []
+        else:
+            self.categories = categories         
         
         self.annotations = []
-        if json_file_path:
+        if not json_file_path is None:
             with open(json_file_path) as json_file:
                 data = json.load(json_file)
                 for input_ann in data:
@@ -97,6 +101,7 @@ class Coco_Annotation_Set(object):
         d = {
             "info" : self.info,
             "licenses" : self.licenses,
+            "categories" : self.categories,
             "images" : self.images,
             "annotations" : anns
         }
@@ -195,7 +200,7 @@ class Coco_Annotation_Object(object):
 
     """
 
-    def __init__(self, bbox:list, category_id:int, score:float, image_id:int, id:int = None, segmentation:list = None, area:float = None, iscrowd:int = 0, image_shape:list = None, bbox_format:str = "coco"):
+    def __init__(self, bbox:list, category_id:int, score:float, image_id:int, id:int = None, segmentation:list = [], area:float = None, iscrowd:int = 0, image_shape:list = None, bbox_format:str = "coco"):
         """
         Args:
             bbox (list): defines the position of the object. its structure changes according to bbox_format as follows:

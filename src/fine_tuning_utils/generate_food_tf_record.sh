@@ -3,3 +3,4 @@ python create_annotations.py -a ../../input/food/output.xls -i ../../input/food/
 python partition_dataset.py -i ../../input/food/20_classes/xml_images -o ../../input/food/20_classes/dataset -r 0.1 -x
 python generate_tf_record.py -x ../../input/food/20_classes/dataset/train -l ../../input/food/20_classes/label_map.pbtxt -o ../../input/food/20_classes/train.record -i ../../input/food/20_classes/dataset/train -c ../../input/food/20_classes/train.csv
 python generate_tf_record.py -x ../../input/food/20_classes/dataset/test -l ../../input/food/20_classes/label_map.pbtxt -o ../../input/food/20_classes/test.record -i ../../input/food/20_classes/dataset/test -c ../../input/food/20_classes/test.csv
+python ./xml_to_coco_json.py -l ../input/food/20_classes/label_map.pbtxt -xi ../input/food/20_classes/dataset/val -ii "../input/food/20_classes/dataset/val/*.jpg" -o ../input/food/20_classes/val_ann.json
