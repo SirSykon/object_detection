@@ -11,13 +11,13 @@ import numpy as np
 class SSD_Object_Detector(Object_Detector):
 
     def __init__(self, to="cuda", model="default"):
-    """
-    Class to act as abstract class in order to create wrappers following the same structure.
+        """
+        Class to act as abstract class in order to create wrappers following the same structure.
 
-        Args:
-            bbox_format (str, optional): defines how bbox is. Format can be "coco" (default), "absolute" or "relative". Defaults to "coco".
-            model (str, optional): if "default", the default pretrained model will be loaded. Else, model should be a path to look for the model.
-    """
+            Args:
+                bbox_format (str, optional): defines how bbox is. Format can be "coco" (default), "absolute" or "relative". Defaults to "coco".
+                model (str, optional): if "default", the default pretrained model will be loaded. Else, model should be a path to look for the model.
+        """
         super().__init__(model=model)
         if model == "default":        
             self.precision = 'fp32'
@@ -58,11 +58,7 @@ class SSD_Object_Detector(Object_Detector):
         """
         with torch.no_grad():   # We are not training so we do not need grads.
             detections_batch = self.model(images)
-        print(detections_batch[0].shape)
-        print(detections_batch[1].shape)
-        print("results_per_input")
         results_per_input = self.utils.decode_results(detections_batch)
-        print(results_per_input)
         outputs = self.turn_ssd_rcnn_outputs_into_coco_format(results_per_input)
 
         print("\n")

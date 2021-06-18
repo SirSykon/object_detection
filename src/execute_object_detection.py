@@ -7,13 +7,14 @@ from glob import glob
 
 import print_utils
 import test_time_augmentation
-import coco_format_utils
+from coco_utils.coco_format_utils import Coco_Annotation_Set, Coco_Annotation_Object
 
 def generator_from_video(video_path):
-    vidcap = cv2.VideoCapture(video_patho)
+    vidcap = cv2.VideoCapture(video_path)
     success, image = vidcap.read()           # We try to read the next image
     while success:
         yield image
+        success, image = vidcap.read()           # We try to read the next image
     
 def generator_from_files_input_format(files_format):
     input_files = sorted(glob(files_format))
@@ -23,20 +24,24 @@ def generator_from_files_input_format(files_format):
 
 def main(args):
     if args.backend == "torch":
-        from object_detectors import torch.faster_rcnn_object_detector, torch.ssd_object_detector, torch.yolo_object_detector as faster_rcnn_object_detector, ssd_object_detector, yolo_object_detector
+        from object_detectors.torch.faster_rcnn_object_detector import Faster_RCNN_Object_Detector
+        from object_detectors.torch.yolo_object_detector import YOLO_Object_Detector
+        from object_detectors.torch.ssd_object_detector import SSD_Object_Detector
     if args.backend == "tf":
-        from object_detectors import tf.faster_rcnn_object_detector, tf.ssd_object_detector, tf.yolo_object_detector as faster_rcnn_object_detector, ssd_object_detector, yolo_object_detector
+        from object_detectors.tf.faster_rcnn_object_detector import Faster_RCNN_Object_Detector
+        from object_detectors.tf.yolo_object_detector import YOLO_Object_Detector
+        from object_detectors.tf.ssd_object_detector import SSD_Object_Detector
     # We will obtain the parameters.
 
     if args.model == 'faster':
         print("Loading Faster RCNN torch object detector")
-        object_detector = faster_rcnn_object_detector.Faster_RCNN_Object_Detector(model=args.model_origin)
+        object_detector = Faster_RCNN_Object_Detector(model=args.model_origin)
     if args.model == 'ssd':
         print("Loading SSD torch object detector")
-        object_detector = ssd_object_detector.SSD_Object_Detector(model=args.model_origin)
+        object_detector = SSD_Object_Detector(model=args.model_origin)
     if args.model == 'yolo':
         print("Loading YOLO torch object detector")
-        object_detector = yolo_object_detector.YOLO_Object_Detector(model=args.model_origin)
+        object_detector = YOLO_Object_Detector(model=args.model_origin)
 
     print(f"Input video: {args.video}")
     print(f"Input file format: {args.input_files_format}")
@@ -69,6 +74,8 @@ def main(args):
                 t,u = test_time_augmentation.create_rotation_transformation(90)
             if trans_name == "rot270":
                 t,u = test_time_augmentation.create_rotation_transformation(270)
+            if trans_name == "rot180":
+                t,u = test_time_augmentation.create_rotation_transformation(180)
             if trans_name == "None":
                 t,u = None, None
 
@@ -83,7 +90,7 @@ def main(args):
             if not os.path.isdir(os.path.join(args.print_output_folder,trans_name)):            # We will ensure the existence of the output folder.
                 os.makedirs(os.path.join(args.print_output_folder,trans_name))
 
-    coco_annotations = coco_format_utils.Coco_Annotation_Set()
+    coco_annotations = Coco_Annotation_Set()
 
     # We need to initialize the image input generator.
     if read_from_video:
@@ -103,7 +110,6 @@ def main(args):
 
         frame_filename = "frame_{:0>6}.png".format(image_index)
         rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        print(rgb_image.shape)
         images_batch = []                          # We create the images batch.
 
         initial_frame_time = time.time()
@@ -118,7 +124,6 @@ def main(args):
         preprocessed_images = object_detector.preprocess(images_batch)                  # We preprocess the batch.
         outputs = object_detector.process(preprocessed_images)                          # We apply the model.
         outputs = object_detector.filter_output_by_confidence_treshold(outputs, treshold = 0.5)         # We filter output using confidence.
-        #print(outputs)
         
         if args.print_output_folder:
             for img_output, img_rgb, trans_name in zip(outputs, images_batch, args.transformations):                             # For outputs from each image...
@@ -139,7 +144,7 @@ def main(args):
 
         # Now we create the coco format annotation for this image.
         for bbox, _class, confidence in zip(unified_output[0], unified_output[1], unified_output[2]):   
-            coco_object = coco_format_utils.Coco_Annotation_Object(bbox=bbox, category_id=_class, id=obj_id, image_id=image_index, score=confidence)
+            coco_object = Coco_Annotation_Object(bbox=bbox, category_id=_class, id=obj_id, image_id=image_index, score=confidence)
             coco_annotations.insert_coco_annotation_object(coco_object)
             obj_id+=1
 

@@ -85,13 +85,13 @@ def create_rotation_transformation(degrees):
         max_h -= 1                      # First index is 0.
         max_w -= 1                      # First index is 0.
         if degrees == 90:
-            return [max_h - y, x]
+            return [max_w - y, x]
 
         if degrees == 180:
             return [max_w - x, max_h - y]
 
         if degrees == 270:
-            return [y, max_w - x]
+            return [y, max_h - x]
 
     return rotate, unrotate_point
 
