@@ -1,5 +1,5 @@
 import argparse
-from coco_utils.coco_evaluation_utils import evaluate
+from coco_evaluation_utils import evaluate
 
 parser = argparse.ArgumentParser(description='Script to execute the coco evaluation for object detection')
 parser.add_argument('-gt', '--ground_truth', help="Path to groundtruth .json annotations file.")

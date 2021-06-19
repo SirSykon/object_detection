@@ -43,8 +43,8 @@ def insert_images_into_coco_ann_obj(images_format, coco_annotations):
         filename = os.path.basename(image_path)
         img = cv2.imread(image_path)
         height, width, _ = img.shape
-        coco_annotations.insert_image(img_idx, width, height, file_name = filename)
-        img_name_relation_to_img_id[filename] = img_idx
+        coco_annotations.insert_image(img_idx+1, width, height, file_name = filename)
+        img_name_relation_to_img_id[filename] = img_idx+1
 
     return coco_annotations, img_name_relation_to_img_id
 
@@ -61,7 +61,7 @@ def xml_to_coco_ann_obj(path, coco_annotations, img_name_relation_to_img_id, cat
     """
 
     obj_counter = 0
-    for xml_file in glob(path + '/*.xml'):
+    for xml_file in sorted(glob(path + '/*.xml')):
         tree = ET.parse(xml_file)
         root = tree.getroot()
         for member in root.findall('object'):

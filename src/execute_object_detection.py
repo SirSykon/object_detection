@@ -7,7 +7,7 @@ from glob import glob
 
 import print_utils
 import test_time_augmentation
-from coco_utils.coco_format_utils import Coco_Annotation_Set, Coco_Annotation_Object
+from coco_format_utils import Coco_Annotation_Set, Coco_Annotation_Object
 
 def generator_from_video(video_path):
     vidcap = cv2.VideoCapture(video_path)
@@ -19,6 +19,7 @@ def generator_from_video(video_path):
 def generator_from_files_input_format(files_format):
     input_files = sorted(glob(files_format))
     for image_path in input_files:
+        print(image_path)
         image = cv2.imread(image_path)
         yield image
 
@@ -29,8 +30,8 @@ def main(args):
         from object_detectors.torch.ssd_object_detector import SSD_Object_Detector
     if args.backend == "tf":
         from object_detectors.tf.faster_rcnn_object_detector import Faster_RCNN_Object_Detector
-        from object_detectors.tf.yolo_object_detector import YOLO_Object_Detector
-        from object_detectors.tf.ssd_object_detector import SSD_Object_Detector
+        #from object_detectors.tf.yolo_object_detector import YOLO_Object_Detector
+        #from object_detectors.tf.ssd_object_detector import SSD_Object_Detector
     # We will obtain the parameters.
 
     if args.model == 'faster':
@@ -50,7 +51,7 @@ def main(args):
     if args.print_output_folder: print(f"Output images will be saved in {args.print_output_folder}")
 
     read_from_video = True                                                                                   # Do we read from video?
-    if not os.path.isfile(args.video):
+    if args.video is None or not os.path.isfile(args.video):
         print(f"{args.video} is not file.")
         read_from_video = False
 
@@ -104,7 +105,10 @@ def main(args):
     obj_id = 1
     process_times_list = []
     initial_process_time = time.time()
-    print(f"Start video process.")
+    if read_from_video:
+        print("Start video process.")
+    else:
+        print("Starting image process.")
 
     for image in image_generator:                                   # While there is a next image.
 

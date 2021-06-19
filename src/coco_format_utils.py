@@ -31,7 +31,7 @@ class Coco_Annotation_Set(object):
         else:
             self.images = images
         if categories is None:
-            categories = []
+            self.categories = []
         else:
             self.categories = categories         
         
