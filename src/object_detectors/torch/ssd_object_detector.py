@@ -61,7 +61,6 @@ class SSD_Object_Detector(Object_Detector):
         results_per_input = self.utils.decode_results(detections_batch)
         outputs = self.turn_ssd_rcnn_outputs_into_coco_format(results_per_input)
 
-        print("\n")
         return outputs
 
     def preprocess(self, images):
