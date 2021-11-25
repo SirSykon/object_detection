@@ -5,3 +5,5 @@ envs/
 input/
 output/
 *.pt
+
+.vscode/

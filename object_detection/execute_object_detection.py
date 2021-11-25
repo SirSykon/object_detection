@@ -6,8 +6,8 @@ import numpy as np
 from glob import glob
 
 import print_utils
-import test_time_augmentation
 from coco_utils.coco_format_utils import Coco_Annotation_Set, Coco_Annotation_Object
+from object_detectors.object_detector import Object_Detector
 
 def generator_from_video(video_path):
     vidcap = cv2.VideoCapture(video_path)
@@ -24,25 +24,8 @@ def generator_from_files_input_format(files_format):
         yield image
 
 def main(args):
-    if args.backend == "torch":
-        from object_detectors.torch.faster_rcnn_object_detector import Faster_RCNN_Object_Detector
-        from object_detectors.torch.yolo_object_detector import YOLO_Object_Detector
-        from object_detectors.torch.ssd_object_detector import SSD_Object_Detector
-    if args.backend == "tf":
-        from object_detectors.tf.faster_rcnn_object_detector import Faster_RCNN_Object_Detector
-        #from object_detectors.tf.yolo_object_detector import YOLO_Object_Detector
-        #from object_detectors.tf.ssd_object_detector import SSD_Object_Detector
-    # We will obtain the parameters.
 
-    if args.model == 'faster':
-        print("Loading Faster RCNN torch object detector")
-        object_detector = Faster_RCNN_Object_Detector(model=args.model_origin)
-    if args.model == 'ssd':
-        print("Loading SSD torch object detector")
-        object_detector = SSD_Object_Detector(model=args.model_origin)
-    if args.model == 'yolo':
-        print("Loading YOLO torch object detector")
-        object_detector = YOLO_Object_Detector(model=args.model_origin)
+    object_detector = Object_Detector(args.backend, args.model, args.model_origin, args.transformations)
 
     print(f"Input video: {args.video}")
     print(f"Input file format: {args.input_files_format}")
@@ -61,27 +44,6 @@ def main(args):
 
     if read_from_video and args.input_files_format:
         print("WARNING: There are video and files input. Video input will be used")
-    
-    # We will generate a list of transformation and untransform point functions.
-    if args.transformations:
-        transform_images_functions = []
-        untransform_point_functions = []
-        for trans_name in args.transformations:
-            if trans_name == "flipH":
-                t,u = test_time_augmentation.create_flip_transformation("horizontal")
-            if trans_name == "flipV":
-                t,u = test_time_augmentation.create_flip_transformation("vertical")
-            if trans_name == "rot90":
-                t,u = test_time_augmentation.create_rotation_transformation(90)
-            if trans_name == "rot270":
-                t,u = test_time_augmentation.create_rotation_transformation(270)
-            if trans_name == "rot180":
-                t,u = test_time_augmentation.create_rotation_transformation(180)
-            if trans_name == "None":
-                t,u = None, None
-
-            transform_images_functions.append(t)
-            untransform_point_functions.append(u)
 
     if not os.path.isdir(os.path.dirname(args.output)):
         os.makedirs(os.path.dirname(args.output))
@@ -114,46 +76,19 @@ def main(args):
 
         frame_filename = "frame_{:0>6}.png".format(image_index)
         rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        images_batch = []                          # We create the images batch.
 
         initial_frame_time = time.time()
 
-        if args.transformations:                            # We apply transformations if there is any.
-            for trans in transform_images_functions:
-                if trans:
-                    images_batch.append(trans(rgb_image))
-                else:
-                    images_batch.append(rgb_image)
-
-        preprocessed_images = object_detector.preprocess(images_batch)                  # We preprocess the batch.
-        outputs = object_detector.process(preprocessed_images)                          # We apply the model.
-        outputs = object_detector.filter_output_by_confidence_treshold(outputs, treshold = 0.5)         # We filter output using confidence.
-        
-        if args.print_output_folder:
-            for img_output, img_rgb, trans_name in zip(outputs, images_batch, args.transformations):                             # For outputs from each image...
-                drawn_image = print_utils.print_detections_on_image(img_output, img_rgb[:,:,[2,1,0]])
-                cv2.imwrite(os.path.join(args.print_output_folder, trans_name, frame_filename), drawn_image)
-
-        untransformed_outputs = []
-        for untransform_point_function, output in zip(untransform_point_functions,outputs):
-            if untransform_point_function:
-                _output = test_time_augmentation.untransform_coco_format_object_information(output, untransform_point_function, rgb_image.shape)
-            else:
-                _output = output
-            untransformed_outputs.append(_output)
-
-        clusters_objects = test_time_augmentation.create_clusters(untransformed_outputs,0.5)
-
-        unified_output = test_time_augmentation.unify_clusters(clusters_objects)
+        output = object_detector.process_single_image(rgb_image)
 
         # Now we create the coco format annotation for this image.
-        for bbox, _class, confidence in zip(unified_output[0], unified_output[1], unified_output[2]):   
+        for bbox, _class, confidence in zip(output[0], output[1], output[2]):   
             coco_object = Coco_Annotation_Object(bbox=bbox, category_id=_class, id=obj_id, image_id=image_index, score=confidence)
             coco_annotations.insert_coco_annotation_object(coco_object)
             obj_id+=1
 
         if args.print_output_folder:
-            drawn_image = print_utils.print_detections_on_image(unified_output, rgb_image[:,:,[2,1,0]])
+            drawn_image = print_utils.print_detections_on_image(output, rgb_image[:,:,[2,1,0]])
             cv2.imwrite(os.path.join(args.print_output_folder, frame_filename), drawn_image)
 
         process_time = time.time()-initial_frame_time
@@ -164,7 +99,6 @@ def main(args):
     print(f"Total process time {time.time()-initial_process_time}, average time per frame {np.array(process_times_list).mean()}")
 
     coco_annotations.to_json(args.output)
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Script to execute object detection to some video.')

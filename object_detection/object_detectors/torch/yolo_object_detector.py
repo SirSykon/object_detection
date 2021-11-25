@@ -5,10 +5,10 @@ Author: Emilio Benzo <emiliojbenzo@gmail.com>
 import cv2
 import torch
 import numpy as np
-from ..object_detector import Object_Detector
+from ..abstract_object_detector import Abstract_Object_Detector
 
 
-class YOLO_Object_Detector(Object_Detector):
+class YOLO_Object_Detector(Abstract_Object_Detector):
 
     def __init__(self, to="cuda", model="default"):
         """

@@ -1,12 +1,12 @@
 
 import numpy as np
 import os
-from ..object_detector import Object_Detector
+from ..abstract_object_detector import Abstract_Object_Detector
 import tensorflow as tf
 from object_detection.builders import model_builder
 from object_detection.utils import config_util
 
-class Faster_RCNN_Object_Detector(Object_Detector):
+class Faster_RCNN_Object_Detector(Abstract_Object_Detector):
     def __init__(self, model="default"):
         """Constructor.
         Args:

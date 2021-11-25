@@ -1,138 +1,100 @@
-"""
-Author: Jorge García <sirsykon@gmail.com>
-"""
 
-import numpy as np
+from abstract_object_detector import Abstract_Object_Detector
+from ..test_time_augmentation import test_time_augmentation
 
-class Object_Detector():
+class Object_Detector(Abstract_Object_Detector):
     """
     Class to act as abstract class in order to create wrappers following the same structure.
 
         Args:
             bbox_format (str, optional): defines how bbox is. Format can be "coco" (default), "absolute" or "relative". Defaults to "coco".
     """
-    def __init__(self, bbox_format="coco", model="default"):
+    def __init__(self, backend, model, model_origin, transformations):
         """
-        Method to initialize the network.
+        Method to initialize the model.
 
         Args:
             bbox_format (str, optional): defines how bbox is. Format can be "coco" (default), "absolute" or "relative". Defaults to "coco".
             model (str, optional): if "default", the default pretrained model will be loaded. Else, model should be a path to look for the model.
         """
-        self.set_bbox_format(bbox_format)
-        self.model_origin = model
 
-    def set_bbox_format(self, bbox_format):
-        """
-        Args:
-            bbox_format (str): defines how bbox is. Format can be "coco" (default), "absolute" or "relative". Defaults to "coco".
-        """
-        self.bbox_format = bbox_format
+        if backend == "torch":
+            from object_detectors.torch.faster_rcnn_object_detector import Faster_RCNN_Object_Detector
+            from object_detectors.torch.yolo_object_detector import YOLO_Object_Detector
+            from object_detectors.torch.ssd_object_detector import SSD_Object_Detector
+        if backend == "tf":
+            from object_detectors.tf.faster_rcnn_object_detector import Faster_RCNN_Object_Detector
+            #from object_detectors.tf.yolo_object_detector import YOLO_Object_Detector
+            #from object_detectors.tf.ssd_object_detector import SSD_Object_Detector
+        # We will obtain the parameters.
 
-    def process_output_bbox_format_coco(self, images):
-        """ Abstract function to apply object detection method and obtain detections with coco structure. 
-            Any child class must implement this function.
+        if model == 'faster':
+            print("Loading Faster RCNN torch object detector")
+            self.object_detector = Faster_RCNN_Object_Detector(model=model_origin)
+        if model == 'ssd':
+            print("Loading SSD torch object detector")
+            self.object_detector = SSD_Object_Detector(model=model_origin)
+        if model == 'yolo':
+            print("Loading YOLO torch object detector")
+            self.object_detector = YOLO_Object_Detector(model=model_origin)
 
-        Args:
-            images (list(np.ndarray)): List of images.
+        # We will generate a list of transformation and untransform point functions.
+        if transformations:
+            self.transform_images_functions = []
+            self.untransform_point_functions = []
+            for trans_name in transformations:
+                if trans_name == "flipH":
+                    t,u = test_time_augmentation.create_flip_transformation("horizontal")
+                if trans_name == "flipV":
+                    t,u = test_time_augmentation.create_flip_transformation("vertical")
+                if trans_name == "rot90":
+                    t,u = test_time_augmentation.create_rotation_transformation(90)
+                if trans_name == "rot270":
+                    t,u = test_time_augmentation.create_rotation_transformation(270)
+                if trans_name == "rot180":
+                    t,u = test_time_augmentation.create_rotation_transformation(180)
+                if trans_name == "None":
+                    t,u = None, None
 
-        Returns:
-            The output is a list containing the object detection information for each image as follows:
-                output : list(objec_detection_information)
-                objec_detection_information : [bboxes, classes, confidences]
-                bboxes : list(bbox) defines the positions of the objects. bbox structure is as folows:
-                    [x,y,width,height] with corners (left-right, top-bottom) [x,y], [x+width,y], [x,y+height] and [x+width,y+height].
-                classes : list(int) 
-                confidences: list(float)
-        """
-        raise(NotImplementedError)
-
-    def preprocess(self, images):
-        """Method to preprocess images in order to be processed by this object detector.
-            Any child class must implement this function.
-            
-        Args:
-            images (list(np.ndarray)): input images to be preprocessed. 
-        """
-        raise(NotImplementedError)
-
-    def filter_output_by_confidence_treshold(self, objects:list, treshold:float = 0.5):
-        """Function to filter the detections with treshold.
-        Args:
-            objects (list): List of object detections.
-            treshold (float, optional): Trshold to filter detections with. Defaults to 0.5.
-        """
-        filtered_objects = []
-
-        for obj in objects:
-            bboxes, classes, confidences = obj
-            idx = confidences >= treshold
-            filtered_objects.append([bboxes[idx], classes[idx], confidences[idx]])
-
-        return filtered_objects
-
-    def process(self, images):
-        """Method to get object detection information.
-
-        Args:
-            images : list(np.ndarray): List of images.
-
-        Returns:
-            The output is a list containing the object detection information for each image as follows:
-                output : list(objec_detection_information)
-                objec_detection_information : [bboxes, classes, confidences]
-                bboxes : list(bbox) defines the positions of the objects. bbox structure changes according to bbox_format as follows:
-                    "coco" -> [x,y,width,height] with corners (left-right, top-bottom) [x,y], [x+width,y], [x,y+height] and [x+width,y+height].
-                    "absolute" -> [x1,y1,x2,y2] with corners (left-right, top-bottom) [x1,y1], [x2, y1], [x1,y2], [x2, y2]
-                    "relative" -> [x1,y1,x2,y2] with corners (left-right, top-bottom) [x1 * self.shape[1],y1 * self.shape[0]], [x2 * self.shape[1], y1 * self.shape[0]], [x1 * self.shape[1],y2 * self.shape[0]], [x2 * self.shape[1], y2 * self.shape[0]]. 
-                classes : list(int) 
-                confidences : list(float)
-        """
-        output = self.process_output_bbox_format_coco(images)
-        if not self.bbox_format == "coco":
-            new_output = []
-            for [coco_format_bboxes, classes, confidences] in output:
-                new_format_bboxes = []
-                for coco_format_bbox in coco_format_bboxes:
-                    x1, y1, width, height = coco_format_bbox
-                    if self.bbox_format == "relative":
-
-                        assert self.shape
-                        relative_format_bbox = [x1 / self.shape[1],y1 / self.shape[0], (x1 + width) / self.shape[1], (y1 - height) / self.shape[0]]
-                        new_format_bboxes.append(relative_format_bbox)
-
-                    if self.bbox_format == "absolute":
-
-                        absolute_format_bbox = [x1, y1, x1+width, y1+height]
-                        new_format_bboxes.append(relative_format_bbox)
-
-                new_output.append([new_format_bboxes, classes, confidences])
+                self.transform_images_functions.append(t)
+                self.untransform_point_functions.append(u)
 
         else:
-            return output
+            self.transform_images_functions = None
+            self.untransform_point_functions = None
 
+    def process_single_image(self, rgb_image):
+        images_batch = []                          # We create the images batch.
+
+        if not self.transform_images_functions is None:                         # We apply transformations if there is any.
+            for trans in self.transform_images_functions:
+                if trans:
+                    images_batch.append(trans(rgb_image))
+                else:
+                    images_batch.append(rgb_image)
+
+        preprocessed_images = self.object_detector.preprocess(images_batch)                             # We preprocess the batch.
+        outputs = self.object_detector.process(preprocessed_images)                                     # We apply the model.
+        outputs = self.object_detector.filter_output_by_confidence_treshold(outputs, treshold = 0.5)    # We filter output using confidence.
+        
+        if args.print_output_folder:
+            for img_output, img_rgb, trans_name in zip(outputs, images_batch, args.transformations):                             # For outputs from each image...
+                drawn_image = print_utils.print_detections_on_image(img_output, img_rgb[:,:,[2,1,0]])
+                cv2.imwrite(os.path.join(args.print_output_folder, trans_name, frame_filename), drawn_image)
+
+        untransformed_outputs = []
+        for untransform_point_function, output in zip(self.untransform_point_functions,outputs):
+            if untransform_point_function:
+                _output = test_time_augmentation.untransform_coco_format_object_information(output, untransform_point_function, rgb_image.shape)
+            else:
+                _output = output
+            untransformed_outputs.append(_output)
+
+        clusters_objects = test_time_augmentation.create_clusters(untransformed_outputs,0.5)
+
+        unified_output = test_time_augmentation.unify_clusters(clusters_objects)
+
+        return unified_output
+        
     def __call__(self, images):
         return self.process(images)
-
-class Dummy_Object_Detector(Object_Detector):
-    """Class to implement Object_Detector wrapper as an example dummy Object_Detector.
-    """
-
-    def __init__(self):
-        super().__init__()
-        print("Creating Dummy Object Detector")
-
-    def preprocess(self,images):
-        """[summary]
-
-        Args:
-            images ([type]): [description]
-
-        Returns:
-            [type]: [description]
-        """
-        return images
-
-
-    
-

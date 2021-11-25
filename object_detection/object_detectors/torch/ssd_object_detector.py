@@ -1,14 +1,14 @@
 """
 Author: Emilio Benzo <emiliojbenzo@gmail.com>
 """
-from ..object_detector import Object_Detector
+from ..abstract_object_detector import Abstract_Object_Detector
 import cv2
 import torch
 from matplotlib import pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 
-class SSD_Object_Detector(Object_Detector):
+class SSD_Object_Detector(Abstract_Object_Detector):
 
     def __init__(self, to="cuda", model="default"):
         """

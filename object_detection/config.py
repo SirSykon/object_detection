@@ -4,7 +4,6 @@ import coco_format_utils
 
 class Config():
     
-    
     def __init__(self):
         # Tensorflow object detection root directory.
         self.TENSORFLOW_RESEARCH_ROOT_FOLDER = os.path.abspath("../../Tensorflow/models/research")
@@ -33,4 +32,4 @@ class Config():
         
         sys.path.append(self.TENSORFLOW_RESEARCH_ROOT_FOLDER)
 
-        coco_format_utils.n
+        coco_format_utils

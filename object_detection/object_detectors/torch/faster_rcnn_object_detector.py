@@ -1,11 +1,11 @@
 import torch
 import torchvision
 import numpy as np
-from ..object_detector import Object_Detector
+from ..abstract_object_detector import Abstract_Object_Detector
 
 # Following https://pytorch.org/vision/stable/models.html#faster-r-cnn
 
-class Faster_RCNN_Object_Detector(Object_Detector):
+class Faster_RCNN_Object_Detector(Abstract_Object_Detector):
     def __init__(self, to="cuda", model="default"):
         """Constructor.
         Args:

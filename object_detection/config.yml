@@ -1,3 +1,25 @@
 
-tensorflow_research_folder: None
-tensorflow_downloaded_models_folder : None
+# Tensorflow object detection root directory.
+TENSORFLOW_RESEARCH_ROOT_FOLDER: None
+# Tensorflow object detection models folder
+TENSORFLOW_DOWNLOADED_MODELS_FOLDER : None
+
+# Model Name to use.
+MODEL_NAME : "ssd_resnet101_v1_fpn_1024x1024_coco17_tpu-8"
+
+# Image shape.
+SHAPE : [1024,1024]
+        
+# Paths to model information.
+PIPELINE_CONFIG : os.path.abspath(f"{self.TENSORFLOW_RESEARCH_ROOT_FOLDER}/object_detection/configs/tf2/{self.MODEL_NAME}.config")
+CHECKPOINT_PATH : os.path.abspath(f"{self.TENSORFLOW_DOWNLOADED_MODELS_FOLDER}/{self.MODEL_NAME}/checkpoint/ckpt-0")
+        
+INPUT_FOLDER : "../input"
+OUTPUT_FOLDER : f"../output/test/{self.MODEL_NAME}"
+        
+# Training hyper-parameters
+BATCH_SIZE : 4
+LEARNING_RATE : 0.001
+EPOCHS : 2
+TEST_SPLIT : 0.3
+VALIDATION_SPLIT : 0.1

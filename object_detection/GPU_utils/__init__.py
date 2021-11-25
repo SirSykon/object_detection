@@ -1,1 +1,1 @@
-from .GPU_utils import *
+import GPU_utils

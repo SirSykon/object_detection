@@ -1,1 +1,1 @@
-from .test_time_augmentation import *
+import test_time_augmentation
