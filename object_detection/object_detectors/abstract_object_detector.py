@@ -7,9 +7,6 @@ import numpy as np
 class Abstract_Object_Detector():
     """
     Class to act as abstract class in order to create wrappers following the same structure.
-
-        Args:
-            bbox_format (str, optional): defines how bbox is. Format can be "coco" (default), "absolute" or "relative". Defaults to "coco".
     """
     def __init__(self, bbox_format="coco", model="default"):
         """

@@ -1,21 +1,25 @@
+import os
+import cv2
+import numpy as np
+from typing import List
 
-from abstract_object_detector import Abstract_Object_Detector
 from ..test_time_augmentation import test_time_augmentation
+from ..print_utils import print_utils
 
-class Object_Detector(Abstract_Object_Detector):
-    """
-    Class to act as abstract class in order to create wrappers following the same structure.
 
-        Args:
-            bbox_format (str, optional): defines how bbox is. Format can be "coco" (default), "absolute" or "relative". Defaults to "coco".
+class Object_Detector():
     """
-    def __init__(self, backend, model, model_origin, transformations):
+    Class to detect objects from images.
+    """
+    def __init__(self, backend:str, model:str, transformations:List[str]=["None"], model_origin:str="default"):
         """
         Method to initialize the model.
 
         Args:
-            bbox_format (str, optional): defines how bbox is. Format can be "coco" (default), "absolute" or "relative". Defaults to "coco".
-            model (str, optional): if "default", the default pretrained model will be loaded. Else, model should be a path to look for the model.
+            backend:str -> "tf" for Tensorflow or "torch" for PyTorch.
+            model:str -> "faster", "ssd" or "yolo".
+            transformations:List[str] -> transformations list. Options are "None", "flipH", "flipV", "rot90", "rot270", "rot180".
+            model_origin:str -> if "default", the default pretrained model will be loaded. Else, model should be a path to look for the model. Default "default".
         """
 
         if backend == "torch":
@@ -42,6 +46,8 @@ class Object_Detector(Abstract_Object_Detector):
         if transformations:
             self.transform_images_functions = []
             self.untransform_point_functions = []
+            self.transformations_names = []
+
             for trans_name in transformations:
                 if trans_name == "flipH":
                     t,u = test_time_augmentation.create_flip_transformation("horizontal")
@@ -56,6 +62,7 @@ class Object_Detector(Abstract_Object_Detector):
                 if trans_name == "None":
                     t,u = None, None
 
+                self.transformations_names.append(trans_name)
                 self.transform_images_functions.append(t)
                 self.untransform_point_functions.append(u)
 
@@ -63,8 +70,39 @@ class Object_Detector(Abstract_Object_Detector):
             self.transform_images_functions = None
             self.untransform_point_functions = None
 
-    def process_single_image(self, rgb_image):
-        images_batch = []                          # We create the images batch.
+    def process_images(self, rgb_images:List[np.ndarray], print_output_folders:List[str]=None, frame_filenames:List[str]=None):
+        """
+        Method to process various images in order to detect objects. If this object detector has transformations, they will be applied.
+
+        Args:
+            rgb_images:List[np.ndarray] -> List of matrix with the images to be processed in order to detect objects.
+            print_output_folders:List[str] -> Output folders path to save images with partial tansformations. Default None.
+            frame_filenames:List[str] -> Names of the files to save the partial transformations images. Default None.
+        """
+        outputs = []
+
+        for index, rgb_image in enumerate(rgb_images):
+            if not print_output_folders is None and not frame_filenames is None:
+                print_output_folder = print_output_folders[index]
+                frame_filename = frame_filenames[index]
+            else:
+                print_output_folder = None
+                frame_filename = None
+            outputs.append(self.process_single_image(rgb_image, print_output_folder=print_output_folder, frame_filename=frame_filename))
+
+        return outputs
+
+    def process_single_image(self, rgb_image:np.ndarray, print_output_folder:str=None, frame_filename:str=None) -> List:
+        """
+        Method to process a single image in order to detect objects. If this object detector has transformations, they will be applied.
+
+        Args:
+            rgb_image:np.ndarray -> Matrix with the image to be processed in order to detect objects.
+            print_output_folder:str -> Output folder path to save images with partial tansformations. Default None.
+            frame_filename:str -> Name of the filename to save the partial transformations images. Default None.
+        """
+
+        images_batch = []                                                       # We create the images batch.
 
         if not self.transform_images_functions is None:                         # We apply transformations if there is any.
             for trans in self.transform_images_functions:
@@ -77,10 +115,11 @@ class Object_Detector(Abstract_Object_Detector):
         outputs = self.object_detector.process(preprocessed_images)                                     # We apply the model.
         outputs = self.object_detector.filter_output_by_confidence_treshold(outputs, treshold = 0.5)    # We filter output using confidence.
         
-        if args.print_output_folder:
-            for img_output, img_rgb, trans_name in zip(outputs, images_batch, args.transformations):                             # For outputs from each image...
+        if not print_output_folder is None:
+            assert not frame_filename is None
+            for img_output, img_rgb, trans_name in zip(outputs, images_batch, self.transformations_names):    # For outputs from each image...
                 drawn_image = print_utils.print_detections_on_image(img_output, img_rgb[:,:,[2,1,0]])
-                cv2.imwrite(os.path.join(args.print_output_folder, trans_name, frame_filename), drawn_image)
+                cv2.imwrite(os.path.join(print_output_folder, trans_name, frame_filename), drawn_image)
 
         untransformed_outputs = []
         for untransform_point_function, output in zip(self.untransform_point_functions,outputs):
@@ -90,11 +129,11 @@ class Object_Detector(Abstract_Object_Detector):
                 _output = output
             untransformed_outputs.append(_output)
 
-        clusters_objects = test_time_augmentation.create_clusters(untransformed_outputs,0.5)
+        clusters_objects = test_time_augmentation.create_clusters(untransformed_outputs,0.5)            # We nnify transformations.
 
         unified_output = test_time_augmentation.unify_clusters(clusters_objects)
 
         return unified_output
-        
+
     def __call__(self, images):
-        return self.process(images)
+        return self.process_images(images)

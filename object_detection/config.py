@@ -1,6 +1,6 @@
 import sys
 import os
-import coco_format_utils
+from .coco_format_utils import coco_format_utils
 
 class Config():
     
