@@ -12,7 +12,7 @@ from utils.read_utils import *
 
 def main(args):
 
-    object_detector = Object_Detector(args.backend, args.model, args.model_origin, args.transformations)
+    object_detector = Object_Detector(args.backend, args.model, args.transformations, args.model_origin)
 
     print(f"Input video: {args.video}")
     print(f"Input file format: {args.input_files_format}")

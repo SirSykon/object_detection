@@ -23,13 +23,13 @@ class Object_Detector():
         """
 
         if backend == "torch":
-            from object_detectors.torch.faster_rcnn_object_detector import Faster_RCNN_Object_Detector
-            from object_detectors.torch.yolo_object_detector import YOLO_Object_Detector
-            from object_detectors.torch.ssd_object_detector import SSD_Object_Detector
+            from .torch.faster_rcnn_object_detector import Faster_RCNN_Object_Detector
+            from .torch.yolo_object_detector import YOLO_Object_Detector
+            from .torch.ssd_object_detector import SSD_Object_Detector
         if backend == "tf":
-            from object_detectors.tf.faster_rcnn_object_detector import Faster_RCNN_Object_Detector
-            #from object_detectors.tf.yolo_object_detector import YOLO_Object_Detector
-            #from object_detectors.tf.ssd_object_detector import SSD_Object_Detector
+            from .tf.faster_rcnn_object_detector import Faster_RCNN_Object_Detector
+            #from .tf.yolo_object_detector import YOLO_Object_Detector
+            #from .tf.ssd_object_detector import SSD_Object_Detector
         # We will obtain the parameters.
 
         if model == 'faster':

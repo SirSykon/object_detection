@@ -11,7 +11,7 @@ All functions will assume mathematical point standard (width, height).
 """
 
 import numpy as np
-import iou_utils
+from ..operations_utils import iou_utils as iou_utils
 
 def create_flip_transformation(axis):
     """Function to create an image flip transformation and the function to transpose information from one image to the original.
