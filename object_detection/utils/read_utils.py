@@ -1,3 +1,6 @@
+from glob import glob
+import cv2
+
 def generator_from_video(video_path):
     vidcap = cv2.VideoCapture(video_path)
     success, image = vidcap.read()           # We try to read the next image
