@@ -20,7 +20,7 @@ class YOLO_Object_Detector(Abstract_Object_Detector):
         """
         super().__init__()
         if model=="default":
-            self.model = torch.hub.load('ultralytics/yolov5', 'yolov5l')
+            self.model = torch.hub.load('ultralytics/yolov5', 'yolov5l6', force_reload=True)
         else:
             raise(NotImplementedError)
         self.model.to(to)
