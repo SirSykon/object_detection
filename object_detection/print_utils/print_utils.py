@@ -51,6 +51,37 @@ def print_points_on_image(points:List[List[int]], image:np.ndarray, colors:Dict[
         drawn_image = cv2.circle(drawn_image, (point[0], point[1]), 5, color, -1)
     return drawn_image
 
+def print_info_on_image(infos:List[str], points:List[List[int]], image:np.ndarray, colors:Dict[int,Tuple[int]]) -> np.ndarray:
+    """
+    points:List[List[int]]
+    image:np.ndarray
+    colors:Dict[int,List[int]]
+    """
+
+    drawn_image = image.copy()
+    for point, info, color in zip(points, infos, colors):
+
+        font                   = cv2.FONT_HERSHEY_SIMPLEX
+        bottomLeftCornerOfText = (point[0], point[1])
+        fontScale              = 1
+        fontColor              = (255,255,255)
+        thickness              = 1
+        lineType               = 2
+
+        cv2.putText(drawn_image,info, 
+            bottomLeftCornerOfText, 
+            font, 
+            fontScale,
+            fontColor,
+            thickness,
+            lineType)
+        print("-")
+        print(point)
+        print((point[0], point[1]))
+
+    return drawn_image
+
+
 def get_random_color(colormap:str='cool', number_of_colors:int=100, normalized:bool=False)-> Dict[int,Tuple[int]]:
     cmap = matplotlib.cm.get_cmap(colormap)
     colors = cmap(np.array(range(number_of_colors)))
